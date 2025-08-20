@@ -1,0 +1,1277 @@
+@import url("inventory.css");
+
+/* Ensure base background matches app */
+html, body { background: #111; color: #fff; }
+
+/* POS page layout aligned with dashboard/inventory */
+.pos-content { gap: 16px; }
+.pos-layout { display: grid; grid-template-columns: 1fr 620px; gap: 20px; align-items: start; min-width: 0; }
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; align-content: start; }
+.product-card { background: #262626; border-radius: 12px; padding: 12px; box-shadow: inset 0 0 0 1px #333; }
+.product-card .product-image { width: 100%; height: 150px; object-fit: contain; background: #fff; border-radius: 8px; padding: 8px; }
+.product-card .product-name { font-weight: 400; margin: 8px 0 4px; }
+.product-card .product-stock { color: #b1b1b1; font-size: 14px; }
+.product-card .product-price { font-weight: 400; margin-top: 6px; }
+
+.cart-panel { background: #262626; border-left: 1px solid #404040; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; height: fit-content; position: sticky; top: 20px; }
+.cart-panel h2 { font-size: 18px; }
+.cart-items { display: flex; flex-direction: column; gap: 8px; }
+.cart-item { display: flex; justify-content: space-between; background: #1f2223; border: 1px solid #333; border-radius: 8px; padding: 10px; }
+.cart-summary { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid #404040; padding-top: 8px; }
+.cart-summary .row { display: flex; justify-content: space-between; color: #e7e7e7; }
+.cart-summary .total { font-weight: 400; }
+.checkout { background: #525252; border: none; border-radius: 8px; color: #fff; padding: 12px; cursor: pointer; }
+.checkout:hover { background: #5e5e5e; }
+.barcode-toggle { display: flex; align-items: center; gap: 8px; color: #e7e7e7; }
+/* --- Cart Table (POS right panel) --- */
+.cart-card { display: flex; flex-direction: column; gap: 14px; }
+.cart-title { font-size: 18px; font-weight: 600; }
+.table-wrap { background: #1b1b1b; border: 1px solid #333; border-radius: 10px; overflow: hidden; }
+.cart-table { width: 100%; border-collapse: collapse; }
+.cart-table thead th { text-align: left; font-weight: 600; color: #dcdcdc; background: #202020; padding: 12px; border-bottom: 1px solid #333; }
+.cart-table tbody td { padding: 10px 12px; border-bottom: 1px solid #2a2a2a; color: #eaeaea; vertical-align: middle; }
+.cart-table tbody tr:hover { background: #262a2b; }
+.qty-col { width: 140px; text-align: center; }
+.qty { display: inline-flex; align-items: center; gap: 8px; background: #1f2223; border: 1px solid #333; border-radius: 8px; padding: 4px; }
+.qty button { width: 28px; height: 28px; background: #3b3bff; color: #fff; border: 0; border-radius: 6px; cursor: pointer; }
+.qty input { width: 44px; height: 28px; background: #e9e9e9; color: #111; border: 0; border-radius: 6px; text-align: center; }
+.cart-table thead th:last-child { width: 72px; text-align: center; }
+.c-del { text-align: center; }
+.c-del .del { background: transparent; border: 0; color: #ff7a7a; cursor: pointer; font-size: 16px; }
+.c-del .icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 6px; color: #ff7a7a; }
+.c-del .icon-btn .icon { display: block; }
+.c-del .icon-btn:hover { background: #2b2b2b; color: #ff4d4d; }
+
+.totals-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 12px 0; border-bottom: 1px solid #333; border-top: 1px solid #333; }
+.metric { display: flex; align-items: center; justify-content: space-between; color: #e7e7e7; background: #1f2223; border: 1px solid #333; border-radius: 8px; padding: 10px 12px; }
+.metric span { color: #bdbdbd; }
+.metric.inputlike { position: relative; }
+
+.grand-total { display: flex; align-items: center; justify-content: space-between; background: #0f1720; color: #fff; border-radius: 8px; padding: 16px; font-size: 18px; }
+.grand-total strong { font-size: 22px; }
+
+.pay-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.pay-btn { border: 0; border-radius: 8px; padding: 14px 10px; color: #fff; cursor: pointer; }
+.pay-btn.cash { background: #22c55e; }
+.pay-btn.gcash { background: #0ea5e9; }
+.pay-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+/* POS customer row */
+.customer-row { display: grid; grid-template-columns: 90px 1fr; gap: 10px; align-items: center; }
+.customer-row label { color: #bdbdbd; font-size: 14px; }
+.customer-row input { height: 36px; background: #1f2223; border: 1px solid #404040; border-radius: 8px; color: #e7e7e7; padding: 0 10px; }
+
+/* Toolbar styling */
+.toolbar { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
+.search-bar { display: flex; gap: 8px; flex: 1; }
+.search-bar input { flex: 1; height: 40px; background: #1f2223; border: 1px solid #404040; border-radius: 8px; color: #e7e7e7; padding: 0 12px; }
+.search-bar button { height: 40px; background: #3b3bff; border: none; border-radius: 8px; color: #fff; padding: 0 16px; cursor: pointer; }
+.search-bar button:hover { background: #2a2aff; }
+
+.category-select select { height: 40px; background: #1f2223; border: 1px solid #404040; border-radius: 8px; color: #e7e7e7; padding: 0 12px; min-width: 140px; }
+
+.refresh-section button { height: 40px; background: #059669; border: none; border-radius: 8px; color: #fff; padding: 0 16px; cursor: pointer; font-size: 14px; }
+.refresh-section button:hover { background: #047857; }
+
+/* Notification animations */
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
+}
+  
+  .POS .body {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    position: relative;
+    flex: 0 0 auto;
+    border: 0px none;
+  }
+  
+/* remove legacy rules below as modern layout replaces them */
+  
+  .POS .overlap {
+    position: relative;
+    height: 1471px;
+  }
+  
+  .POS .overlap-group {
+    position: absolute;
+    width: 1440px;
+    height: 1471px;
+    top: 0;
+    left: 0;
+  }
+  
+  .POS .div-2 {
+    position: absolute;
+    width: 384px;
+    height: 1367px;
+    top: 0;
+    left: 1056px;
+    background-color: #262626;
+    border-left-width: 1px;
+    border-left-style: solid;
+    border-color: #404040;
+  }
+  
+  .POS .h {
+    position: absolute;
+    width: 335px;
+    height: 28px;
+    top: 24px;
+    left: 25px;
+    border: 0px none;
+  }
+  
+  .POS .text-wrapper {
+    position: absolute;
+    width: 137px;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #ffffff;
+    font-size: 20px;
+    letter-spacing: 0;
+    line-height: normal;
+    white-space: nowrap;
+  }
+  
+  .POS .div-3 {
+    position: absolute;
+    width: 335px;
+    height: 213px;
+    top: 723px;
+    left: 26px;
+    border-top-width: 1px;
+    border-top-style: solid;
+    border-color: #404040;
+  }
+  
+  .POS .button {
+    all: unset;
+    box-sizing: border-box;
+    position: absolute;
+    width: 335px;
+    height: 48px;
+    top: 165px;
+    left: 0;
+    background-color: #525252;
+    border-radius: 8px;
+    border: 0px none;
+  }
+  
+  .POS .text-wrapper-2 {
+    position: absolute;
+    width: 154px;
+    top: 14px;
+    left: 91px;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #ffffff;
+    font-size: 16px;
+    text-align: center;
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .POS .total-default {
+    display: flex;
+    flex-direction: column;
+    width: 335px;
+    align-items: flex-start;
+    gap: 20px;
+    position: absolute;
+    top: 15px;
+    left: 16px;
+  }
+  
+  .POS .div-4 {
+    position: relative;
+    align-self: stretch;
+    width: 100%;
+    height: 24px;
+    border: 0px none;
+  }
+  
+  .POS .text-wrapper-3 {
+    position: absolute;
+    width: 64px;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #a3a3a3;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: 16px;
+  }
+  
+  .POS .text-wrapper-4 {
+    width: 80px;
+    top: 2px;
+    left: 256px;
+    font-size: 16px;
+    line-height: 16px;
+    position: absolute;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #ffffff;
+    letter-spacing: 0;
+  }
+  
+  .POS .text-wrapper-5 {
+    position: absolute;
+    width: 73px;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #a3a3a3;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: 16px;
+  }
+  
+  .POS .text-wrapper-6 {
+    width: 66px;
+    top: 2px;
+    left: 256px;
+    font-size: 16px;
+    line-height: 16px;
+    position: absolute;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #ffffff;
+    letter-spacing: 0;
+  }
+  
+  .POS .div-5 {
+    position: relative;
+    align-self: stretch;
+    width: 100%;
+    height: 28px;
+    border: 0px none;
+  }
+  
+  .POS .text-wrapper-7 {
+    position: absolute;
+    width: 42px;
+    top: 3px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #ffffff;
+    font-size: 18px;
+    letter-spacing: 0;
+    line-height: 18px;
+    white-space: nowrap;
+  }
+  
+  .POS .text-wrapper-8 {
+    width: 89px;
+    top: 3px;
+    left: 256px;
+    font-size: 18px;
+    line-height: 18px;
+    white-space: nowrap;
+    position: absolute;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #ffffff;
+    letter-spacing: 0;
+  }
+  
+  .POS .overlap-wrapper {
+    position: absolute;
+    width: 1440px;
+    height: 1367px;
+    top: 104px;
+    left: 0;
+    border: 0px none;
+  }
+  
+  .POS .overlap-2 {
+    position: relative;
+    width: 1512px;
+    height: 1535px;
+    top: -168px;
+  }
+  
+  .POS .overlap-3 {
+    position: absolute;
+    width: 1512px;
+    height: 1535px;
+    top: 0;
+    left: 0;
+  }
+  
+  .POS .div-6 {
+    position: absolute;
+    width: 1056px;
+    height: 1367px;
+    top: 168px;
+    left: 0;
+    border: 0px none;
+  }
+  
+  .POS .overlap-group-2 {
+    position: absolute;
+    width: 1393px;
+    height: 882px;
+    top: 35px;
+    left: 24px;
+  }
+  
+  .POS .product {
+    position: absolute;
+    width: 670px;
+    height: 280px;
+    top: 5px;
+    left: 723px;
+  }
+  
+  .POS .POS-vape {
+    position: absolute;
+    width: 335px;
+    height: 76px;
+    top: 33px;
+    left: 335px;
+    border: 0px none;
+  }
+  
+  .POS .div-wrapper {
+    height: 76px;
+    background-color: #404040;
+    border-radius: 8px;
+    border: 0px none;
+  }
+  
+  .POS .div-7 {
+    position: relative;
+    width: 303px;
+    height: 44px;
+    top: 16px;
+    left: 16px;
+    border: 0px none;
+  }
+  
+  .POS .div-8 {
+    position: absolute;
+    width: 110px;
+    height: 44px;
+    top: 0;
+    left: 0;
+    border: 0px none;
+  }
+  
+  .POS .text {
+    position: absolute;
+    width: 109px;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #ffffff;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: 16px;
+  }
+  
+  .POS .text-wrapper-9 {
+    position: absolute;
+    width: 48px;
+    top: 25px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #a3a3a3;
+    font-size: 14px;
+    letter-spacing: 0;
+    line-height: 14px;
+  }
+  
+  .POS .text-wrapper-10 {
+    width: 79px;
+    top: 2px;
+    left: 225px;
+    font-size: 16px;
+    line-height: 16px;
+    position: absolute;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #ffffff;
+    letter-spacing: 0;
+  }
+  
+  .POS .div-9 {
+    position: absolute;
+    width: 240px;
+    height: 280px;
+    top: 0;
+    left: 0;
+    background-color: #262626;
+    border-radius: 8px;
+    border: 0px none;
+  }
+  
+  .POS .div-10 {
+    position: absolute;
+    width: 208px;
+    height: 160px;
+    top: 16px;
+    left: 16px;
+    border-radius: 8px;
+    border: 0px none;
+    background-image: url(./img/div-3.png);
+    background-size: cover;
+    background-position: 50% 50%;
+  }
+  
+  .POS .h-2 {
+    position: absolute;
+    width: 208px;
+    top: 188px;
+    left: 16px;
+    height: 24px;
+    border: 0px none;
+  }
+  
+  .POS .text-wrapper-11 {
+    position: absolute;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #ffffff;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: normal;
+    white-space: nowrap;
+  }
+  
+  .POS .p {
+    position: absolute;
+    width: 208px;
+    height: 20px;
+    top: 212px;
+    left: 16px;
+    border: 0px none;
+  }
+  
+  .POS .text-wrapper-12 {
+    position: absolute;
+    width: 63px;
+    top: 1px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #a3a3a3;
+    font-size: 14px;
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .POS .p-2 {
+    position: absolute;
+    width: 208px;
+    height: 24px;
+    top: 240px;
+    left: 16px;
+    border: 0px none;
+  }
+  
+  .POS .frame-wrapper {
+    position: absolute;
+    width: 1008px;
+    height: 882px;
+    top: 0;
+    left: 0;
+    border: 0px none;
+  }
+  
+  .POS .frame {
+    position: relative;
+    width: 567px;
+    height: 636px;
+    top: 340px;
+    left: 395px;
+    overflow-y: scroll;
+  }
+  
+  .POS .frame::-webkit-scrollbar {
+    width: 0;
+    display: none;
+  }
+  
+  .POS .div-11 {
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+    height: 276px;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 16px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background-color: #262626;
+    border-radius: 8px;
+    border: 0px none;
+  }
+  
+  .POS .div-12 {
+    position: relative;
+    align-self: stretch;
+    width: 100%;
+    height: 160px;
+    border-radius: 8px;
+    border: 0px none;
+    background-image: url(./img/div-2.png);
+    background-size: cover;
+    background-position: 50% 50%;
+  }
+  
+  .POS .juice {
+    position: absolute;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #ffffff;
+    font-size: 14px;
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .POS .p-3 {
+    position: relative;
+    align-self: stretch;
+    width: 100%;
+    height: 20px;
+    border: 0px none;
+  }
+  
+  .POS .text-wrapper-13 {
+    position: absolute;
+    width: 61px;
+    top: 1px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #a3a3a3;
+    font-size: 14px;
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .POS .p-4 {
+    position: relative;
+    align-self: stretch;
+    width: 100%;
+    height: 24px;
+    margin-bottom: -4.80px;
+    border: 0px none;
+  }
+  
+  .POS .text-wrapper-14 {
+    width: 79px;
+    top: 2px;
+    left: 0;
+    font-size: 16px;
+    line-height: normal;
+    position: absolute;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #ffffff;
+    letter-spacing: 0;
+  }
+  
+  .POS .div-13 {
+    position: absolute;
+    width: 240px;
+    height: 280px;
+    top: 0;
+    left: 327px;
+    background-color: #262626;
+    border-radius: 8px;
+    border: 0px none;
+  }
+  
+  .POS .div-14 {
+    position: absolute;
+    width: 208px;
+    height: 160px;
+    top: 16px;
+    left: 16px;
+    border-radius: 8px;
+    border: 0px none;
+    background-image: url(./img/div-5.png);
+    background-size: cover;
+    background-position: 50% 50%;
+  }
+  
+  .POS .text-wrapper-15 {
+    position: absolute;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #ffffff;
+    font-size: 15px;
+    letter-spacing: 0;
+    line-height: normal;
+    white-space: nowrap;
+  }
+  
+  .POS .div-15 {
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+    height: 276px;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 16px;
+    position: absolute;
+    top: 327px;
+    left: 0;
+    background-color: #262626;
+    border-radius: 8px;
+    border: 0px none;
+  }
+  
+  .POS .div-16 {
+    position: relative;
+    align-self: stretch;
+    width: 100%;
+    height: 160px;
+    border-radius: 8px;
+    border: 0px none;
+    background-image: url(./img/div.png);
+    background-size: cover;
+    background-position: 50% 50%;
+  }
+  
+  .POS .div-17 {
+    position: absolute;
+    width: 240px;
+    height: 280px;
+    top: 327px;
+    left: 327px;
+    background-color: #262626;
+    border-radius: 8px;
+    border: 0px none;
+  }
+  
+  .POS .span-wrapper {
+    position: absolute;
+    width: 208px;
+    height: 160px;
+    top: 16px;
+    left: 16px;
+    border-radius: 8px;
+    border: 0px none;
+    background-image: url(./img/image.png);
+    background-size: cover;
+    background-position: 50% 50%;
+  }
+  
+  .POS .span {
+    position: relative;
+    width: 110px;
+    height: 24px;
+    top: 68px;
+    left: 49px;
+    border: 0px none;
+  }
+  
+  .POS .product-image {
+    position: absolute;
+    width: 111px;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #a3a3a3;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .POS .hardware {
+    color: #f5f5f5;
+    font-size: 15px;
+    line-height: 16px;
+    position: absolute;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  
+  .POS .input-wrapper {
+    position: absolute;
+    width: 1008px;
+    height: 42px;
+    top: -57px;
+    left: -16px;
+    border: 0px none;
+  }
+  
+  .POS .input {
+    position: relative;
+    width: 508px;
+    height: 40px;
+    top: 1px;
+    left: 361px;
+    background-color: #262626;
+    border-radius: 8px;
+    border: 1px solid;
+    border-color: #404040;
+  }
+  
+  .POS .search-products {
+    position: absolute;
+    width: 138px;
+    height: 42px;
+    top: -1px;
+    left: 16px;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #adaebc;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: 24px;
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+  
+  .POS .frame-2 {
+    display: flex;
+    width: 16px;
+    height: 16px;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 12px;
+    left: 463px;
+  }
+  
+  .POS .frame-3 {
+    position: relative;
+    width: 16px;
+    height: 16px;
+    border: 0px none;
+    background-image: url(./img/image.svg);
+    background-size: 100% 100%;
+  }
+  
+  .POS .group {
+    position: absolute;
+    width: 1268px;
+    height: 655px;
+    top: 0;
+    left: 244px;
+  }
+  
+  .POS .overlap-4 {
+    position: relative;
+    width: 1003px;
+    height: 346px;
+    top: 140px;
+    left: 170px;
+  }
+  
+  .POS .product-vape {
+    position: absolute;
+    width: 1003px;
+    height: 346px;
+    top: 0;
+    left: 0;
+  }
+  
+  .POS .POS-vape-2 {
+    top: 0;
+    left: 668px;
+    overflow: hidden;
+    position: absolute;
+    width: 335px;
+    height: 75px;
+    border: 0px none;
+  }
+  
+  .POS .div-18 {
+    display: flex;
+    flex-direction: column;
+    width: 240px;
+    height: 277px;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 16px;
+    position: absolute;
+    top: 69px;
+    left: 0;
+    background-color: #262626;
+    border-radius: 8px;
+    border: 0px none;
+  }
+  
+  .POS .div-19 {
+    position: relative;
+    align-self: stretch;
+    width: 100%;
+    height: 160px;
+    border-radius: 8px;
+    border: 0px none;
+    background-image: url(./img/div-4.png);
+    background-size: cover;
+    background-position: 50% 50%;
+  }
+  
+  .POS .p-5 {
+    position: relative;
+    align-self: stretch;
+    width: 100%;
+    height: 24px;
+    margin-bottom: -4.00px;
+    border: 0px none;
+  }
+  
+  .POS .POS-vape-3 {
+    top: 209px;
+    left: 668px;
+    position: absolute;
+    width: 335px;
+    height: 75px;
+    border: 0px none;
+  }
+  
+  .POS .POS-vape-4 {
+    top: 456px;
+    left: 1082px;
+    position: absolute;
+    width: 335px;
+    height: 75px;
+    border: 0px none;
+  }
+  
+  .POS .barcode {
+    position: absolute;
+    width: 216px;
+    height: 19px;
+    top: 1035px;
+    left: 1142px;
+  }
+  
+  .POS .text-wrapper-16 {
+    position: absolute;
+    top: -1px;
+    left: 31px;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #ffffff;
+    font-size: 16px;
+    text-align: center;
+    letter-spacing: 0;
+    line-height: normal;
+    white-space: nowrap;
+  }
+  
+  .POS .rectangle {
+    width: 19px;
+    height: 17px;
+    top: 1px;
+    border: 1px solid;
+    border-color: #000000;
+    position: absolute;
+    left: 0;
+  }
+  
+  .POS .nav {
+    position: absolute;
+    width: 300px;
+    height: 1437px;
+    top: 0;
+    left: 0;
+    background-color: #262626;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+  }
+  
+  .POS .overlap-5 {
+    position: absolute;
+    width: 316px;
+    height: 47px;
+    top: 433px;
+    left: 3px;
+  }
+  
+  .POS .img {
+    width: 297px;
+    height: 47px;
+    top: 0;
+    position: absolute;
+    left: 0;
+  }
+  
+  .POS .pos-btn {
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 0;
+    left: 1px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .POS .text-wrapper-17 {
+    position: absolute;
+    width: 231px;
+    top: 11px;
+    left: 113px;
+    font-family: "Inter-SemiBold", Helvetica;
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 20px;
+    letter-spacing: 4.00px;
+    line-height: normal;
+  }
+  
+  .POS .vector-wrapper {
+    position: absolute;
+    width: 28px;
+    height: 22px;
+    top: 12px;
+    left: 61px;
+    border: 0px none;
+  }
+  
+  .POS .vector {
+    position: absolute;
+    width: 26px;
+    height: 22px;
+    top: 0;
+    left: 2px;
+  }
+  
+  .POS .overlap-6 {
+    position: absolute;
+    width: 306px;
+    height: 205px;
+    top: 20px;
+    left: 39px;
+  }
+  
+  .POS .div-20 {
+    position: absolute;
+    width: 200px;
+    height: 28px;
+    top: 33px;
+    left: 106px;
+    border: 0px none;
+  }
+  
+  .POS .screenshot {
+    position: absolute;
+    width: 221px;
+    height: 205px;
+    top: 0;
+    left: 0;
+    aspect-ratio: 1.08;
+    object-fit: cover;
+  }
+  
+  .POS .dash-btn {
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 299px;
+    left: 3px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .POS .group-2 {
+    position: absolute;
+    width: 34px;
+    height: 27px;
+    top: 11px;
+    left: 56px;
+    background-image: url(./img/vector-8.svg);
+    background-size: 100% 100%;
+  }
+  
+  .POS .reports-btn {
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 634px;
+    left: 3px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .POS .img-wrapper {
+    position: absolute;
+    width: 28px;
+    height: 22px;
+    top: 13px;
+    left: 62px;
+    border: 0px none;
+  }
+  
+  .POS .vector-2 {
+    position: absolute;
+    width: 26px;
+    height: 22px;
+    top: 0;
+    left: 1px;
+  }
+  
+  .POS .settinga-btn {
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 701px;
+    left: 3px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .POS .vector-3 {
+    position: absolute;
+    width: 28px;
+    height: 22px;
+    top: 13px;
+    left: 63px;
+  }
+  
+  .POS .logout-btn {
+    all: unset;
+    box-sizing: border-box;
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 974px;
+    left: 4px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .POS .frame-4 {
+    position: absolute;
+    width: 28px;
+    height: 22px;
+    top: 13px;
+    left: 60px;
+    border: 0px none;
+  }
+  
+  .POS .vector-4 {
+    position: absolute;
+    width: 28px;
+    height: 19px;
+    top: 1px;
+    left: 0;
+  }
+  
+  .POS .customer-btn {
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 500px;
+    left: 3px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .POS .text-wrapper-18 {
+    position: absolute;
+    width: 231px;
+    top: 11px;
+    left: 113px;
+    font-family: "Inter-Bold", Helvetica;
+    font-weight: 700;
+    color: #ffffff;
+    font-size: 20px;
+    letter-spacing: 4.00px;
+    line-height: normal;
+  }
+  
+  .POS .vector-5 {
+    position: absolute;
+    width: 20px;
+    height: 16px;
+    top: 3px;
+    left: 4px;
+  }
+  
+  .POS .suppliers-btn {
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 567px;
+    left: 3px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .POS .i {
+    position: relative;
+    width: 20px;
+    height: 16px;
+    top: 3px;
+    left: 4px;
+    border: 0px none;
+  }
+  
+  .POS .svg {
+    display: flex;
+    width: 20px;
+    height: 16px;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  
+  .POS .frame-5 {
+    position: relative;
+    width: 20px;
+    height: 16px;
+    border: 0px none;
+    background-image: url(./img/vector-3.svg);
+    background-size: 100% 100%;
+  }
+  
+  .POS .inventory-btn {
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 363px;
+    left: 3px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .POS .frame-6 {
+    position: absolute;
+    width: 28px;
+    height: 22px;
+    top: 12px;
+    left: 61px;
+    border: 0px none;
+    background-image: url(./img/vector.svg);
+    background-size: 100% 100%;
+  }
+  
+  .POS .POS-vape-before-add {
+    position: absolute;
+    width: 160px;
+    height: 40px;
+    top: 48px;
+    left: 870px;
+    background-color: #262626;
+    border-radius: 8px;
+    border: 1px solid;
+    border-color: #404040;
+  }
+  
+  .POS .frame-7 {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    top: 8px;
+    left: 128px;
+  }
+  
+  .POS .vector-6 {
+    position: absolute;
+    width: 12px;
+    height: 7px;
+    top: 8px;
+    left: 6px;
+  }
+  
+  .POS .text-wrapper-19 {
+    position: absolute;
+    width: 106px;
+    height: 40px;
+    top: -1px;
+    left: 12px;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #ffffff;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: normal;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  /* Original CSS code should be injected here */
+  
+  /* Additional CSS for improved accessibility and semantics */
+  .rectangle {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+  
+  .rectangle:checked {
+    background-color: #ffffff;
+  }
+  
+  .rectangle:focus {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+  }
+  
+  /* Ensure navigation links have proper styling */
+/* Sidebar links use shared styles from inventory.css; avoid overriding them here */
+  
+  /* Improve button accessibility */
+  .button:hover,
+  .logout-btn:hover {
+    opacity: 0.9;
+    cursor: pointer;
+  }
+  
+  .button:focus,
+  .logout-btn:focus {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+  }
+  
+  /* Improve search input accessibility */
+  .search-products:focus {
+    outline: 2px solid #4a90e2;
+    outline-offset: -2px;
+  }
+  
+  /* Screen reader only text for better accessibility */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  

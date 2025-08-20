@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>Suppliers</title>
+    <link rel="stylesheet" href="global.css" />
+    <link rel="stylesheet" href="product_list.css" />
+    <style>
+      .main-content { padding-top: 16px; }
+      .toolbar-actions { margin-left: auto; display: flex; gap: 8px; }
+      .status-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 999px; font-size: 12px; border: 1px solid #2a2a2a; background: #1f2223; color: #bdbdbd; }
+      .status-badge.active { background: #0f2a14; color: #9ff6b2; border-color: #214d2c; }
+      /* Move plus icon to the right of label for suppliers add button */
+      .add-supplier-btn .add::before { margin-right: 0; margin-left: 8px; }
+      table { table-layout: fixed; }
+      thead th, tbody td { vertical-align: middle; }
+      /* Column sizing */
+      thead th:nth-child(1), tbody td:nth-child(1) { width: 260px; }
+      thead th:nth-child(2), tbody td:nth-child(2) { width: 260px; }
+      thead th:nth-child(3), tbody td:nth-child(3) { width: 160px; }
+      thead th:nth-child(4), tbody td:nth-child(4) { width: 140px; }
+      thead th:nth-child(5), tbody td:nth-child(5) { width: 120px; text-align: center; }
+      thead th:nth-child(6), tbody td:nth-child(6) { width: 120px; text-align: center; }
+      
+      /* Category tags styling */
+      .category-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+      .category-tag { 
+        background: #1e40af; 
+        color: #ffffff; 
+        padding: 2px 8px; 
+        border-radius: 12px; 
+        font-size: 11px; 
+        font-weight: 500;
+        border: 1px solid #3b82f6;
+      }
+      
+      /* Modal styling */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+      
+      .modal-content {
+        background: #1f2223;
+        border: 1px solid #404040;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+      
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid #404040;
+      }
+      
+      .modal-title {
+        font-size: 20px;
+        font-weight: 600;
+        color: #f5f5f5;
+      }
+      
+      .close-btn {
+        background: none;
+        border: none;
+        color: #a3a3a3;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .close-btn:hover {
+        color: #f5f5f5;
+      }
+      
+      .form-group {
+        margin-bottom: 16px;
+      }
+      
+      .form-group label {
+        display: block;
+        color: #d4d4d4;
+        font-size: 14px;
+        margin-bottom: 6px;
+      }
+      
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        height: 40px;
+        background: #1f2223;
+        border: 1px solid #404040;
+        border-radius: 6px;
+        color: #f5f5f5;
+        padding: 0 12px;
+        font-size: 14px;
+      }
+      
+      .form-group textarea {
+        height: 80px;
+        resize: vertical;
+        padding: 12px;
+      }
+      
+      .category-checkboxes {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 8px;
+      }
+      
+      .category-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      
+      .category-checkbox input[type="checkbox"] {
+        width: auto;
+        height: auto;
+      }
+      
+      .modal-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid #404040;
+      }
+      
+      .btn {
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        border: none;
+        font-size: 14px;
+      }
+      
+      .btn-primary {
+        background: #059669;
+        color: #ffffff;
+      }
+      
+      .btn-secondary {
+        background: #404040;
+        color: #f5f5f5;
+      }
+      
+      .btn-danger {
+        background: #dc2626;
+        color: #ffffff;
+      }
+      
+      .supplier-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+      
+      .stat-card {
+        background: #2a2a2a;
+        padding: 16px;
+        border-radius: 8px;
+        text-align: center;
+      }
+      
+      .stat-value {
+        font-size: 24px;
+        font-weight: 600;
+        color: #4ade80;
+        margin-bottom: 4px;
+      }
+      
+      .stat-label {
+        font-size: 12px;
+        color: #a3a3a3;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+      
+      /* Archive button styling */
+      #openArchiveBtn {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        width: 56px;
+        height: 56px;
+        background: #dc2626;
+        color: #ffffff;
+        border: none;
+        border-radius: 50%;
+        font-size: 20px;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        transition: all 0.3s ease;
+        z-index: 100;
+      }
+      
+      #openArchiveBtn:hover {
+        background: #b91c1c;
+        transform: scale(1.1);
+        box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
+      }
+      
+      /* Archive modal styling */
+      .archive-tabs {
+        display: flex;
+        border-bottom: 1px solid #404040;
+        margin-bottom: 20px;
+      }
+      
+      .archive-tab {
+        flex: 1;
+        padding: 12px 16px;
+        background: none;
+        border: none;
+        color: #a3a3a3;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s ease;
+      }
+      
+      .archive-tab.active {
+        color: #4ade80;
+        border-bottom-color: #4ade80;
+      }
+      
+      .archive-tab:hover {
+        color: #f5f5f5;
+      }
+      
+      .archive-content {
+        display: none;
+      }
+      
+      .archive-content.active {
+        display: block;
+      }
+      
+      .archive-item {
+        background: #2a2a2a;
+        border: 1px solid #404040;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 12px;
+        transition: all 0.3s ease;
+      }
+      
+      .archive-item:hover {
+        border-color: #525252;
+        background: #323232;
+      }
+      
+      .restored-item {
+        background: #0f2a14;
+        border-color: #214d2c;
+      }
+      
+      .archive-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      
+      .archive-item-name {
+        font-weight: 600;
+        color: #f5f5f5;
+        font-size: 16px;
+      }
+      
+      .archive-item-date {
+        font-size: 12px;
+        color: #a3a3a3;
+      }
+      
+      .archive-item-categories {
+        margin-bottom: 12px;
+      }
+      
+      .archive-item-actions {
+        display: flex;
+        gap: 8px;
+      }
+      
+      .restore-btn {
+        background: #059669;
+        color: #ffffff;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+      
+      .restore-btn:hover {
+        background: #047857;
+      }
+      
+      .permanent-delete-btn {
+        background: #dc2626;
+        color: #ffffff;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+      
+      .permanent-delete-btn:hover {
+        background: #b91c1c;
+      }
+      
+      #emptyArchiveBtn {
+        background: #dc2626;
+        color: #ffffff;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+        margin-top: 16px;
+        transition: background 0.3s ease;
+      }
+      
+      #emptyArchiveBtn:hover {
+        background: #b91c1c;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <div class="brand"><img src="gelo.png" alt="Gelo's Vape Shop logo" /></div>
+          <nav class="nav">
+            <ul class="nav-list">
+              <li><a href="Pages/dashboard.html"><span class="icon">🏠</span><span class="label">Dashboard</span></a></li>
+              <li class="has-submenu">
+                <a href="Pages/inventory.html"><span class="icon">📦</span><span class="label">Inventory</span></a>
+                <ul class="submenu">
+                  <li><a href="product_list.html">Product List</a></li>
+                </ul>
+              </li>
+              <li><a href="Pages/pos.html"><span class="icon">🧾</span><span class="label">POS</span></a></li>
+              <li><a href="customers.html"><span class="icon">👥</span><span class="label">Customer</span></a></li>
+              <li><a class="active" href="suppliers.html"><span class="icon">🚚</span><span class="label">Suppliers</span></a></li>
+              <li class="has-submenu">
+                <a href="reports.html"><span class="icon">📊</span><span class="label">Reports</span></a>
+                <ul class="submenu">
+                  <li><a href="reports.html#sales-reports">Sales Reports</a></li>
+                  <li><a href="reports.html#inventory-reports">Inventory Reports</a></li>
+                  <li><a href="reports.html#financial-reports">Financial Reports</a></li>
+                  <li><a href="reports.html#supplier-reports">Supplier Reports</a></li>
+                  <li><a href="reports.html#customer-reports">Customer Reports</a></li>
+                  <li><a href="reports.html#operational-reports">Operational Reports</a></li>
+                </ul>
+              </li>
+              <li><a href="settings.html"><span class="icon">⚙️</span><span class="label">Settings</span></a></li>
+            </ul>
+          </nav>
+        </div>
+        <a href="index.html" class="logout"><span class="icon">⎋</span><span class="label">Logout</span></a>
+      </aside>
+
+      <main class="main-content">
+        <div class="toolbar">
+          <div class="search-bar">
+            <input type="search" placeholder="Search suppliers..." aria-label="Search suppliers" id="supplierSearch" />
+            <button type="button" aria-label="Search"><span class="icon search"></span></button>
+          </div>
+          <div class="category-select">
+            <select id="supplierCategory" aria-label="Filter by category">
+              <option value="all">All Categories</option>
+              <option value="Units">Units</option>
+              <option value="Disposable">Disposable</option>
+              <option value="E-juice">E-juice</option>
+              <option value="Hardware">Hardware</option>
+            </select>
+          </div>
+          <div class="toolbar-actions">
+            <button class="add-product-btn" id="logDeliveryBtn">Log Delivery</button>
+            <button class="add-product-btn add-supplier-btn" id="addSupplierBtn">Add Supplier<span class="icon add" aria-hidden="true"></span></button>
+          </div>
+        </div>
+
+        <section class="table-card">
+          <table id="suppliersTable">
+            <thead>
+              <tr>
+                <th>Supplier Name</th>
+                <th>Contact</th>
+                <th>Categories</th>
+                <th>Last Order</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+
+          <div class="pagination">
+            <button class="page-btn">Previous</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">Next</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Log Delivery Modal -->
+    <div class="modal-overlay" id="logDeliveryModal" style="display:none">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Log Delivery</h3>
+          <button class="close-btn" onclick="closeModal('logDeliveryModal')">&times;</button>
+        </div>
+
+        <div class="form-group">
+          <label>Supplier</label>
+          <select id="ldSupplier"></select>
+        </div>
+
+        <div class="form-group">
+          <label>Product</label>
+          <input type="text" id="ldProduct" placeholder="Product name" />
+        </div>
+
+        <div class="form-group">
+          <label>Category</label>
+          <select id="ldCategory">
+            <option value="Units">Units</option>
+            <option value="Disposable">Disposable</option>
+            <option value="E-juice">E-juice</option>
+            <option value="Hardware">Hardware</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Quantity</label>
+          <input type="number" id="ldQty" min="1" value="1" />
+        </div>
+
+        <div class="form-group">
+          <label>Unit Cost (₱)</label>
+          <input type="number" id="ldUnitCost" min="0" step="0.01" value="0" />
+        </div>
+
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="ldDate" />
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="closeModal('logDeliveryModal')">Cancel</button>
+          <button class="btn btn-primary" onclick="saveDelivery()">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Floating Archive Button -->
+    <button id="openArchiveBtn" onclick="openModal('archiveModal')" title="Open Archive">🗑️</button>
+
+    <!-- Supplier Details Modal -->
+    <div class="modal-overlay" id="supplierDetailsModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Supplier Details</h3>
+          <button class="close-btn" onclick="closeModal('supplierDetailsModal')">&times;</button>
+        </div>
+        
+        <div class="supplier-stats">
+          <div class="stat-card">
+            <div class="stat-value" id="totalProducts">24</div>
+            <div class="stat-label">Total Products</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="totalOrders">156</div>
+            <div class="stat-label">Total Orders</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="totalSpent">₱45,230</div>
+            <div class="stat-label">Total Spent</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value" id="avgOrderValue">₱290</div>
+            <div class="stat-label">Avg Order Value</div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Supplier Name</label>
+          <input type="text" id="detailSupplierName" readonly>
+        </div>
+        
+        <div class="form-group">
+          <label>Contact Information</label>
+          <input type="email" id="detailContact" readonly>
+        </div>
+        
+        <div class="form-group">
+          <label>Categories Supplied</label>
+          <div id="detailCategories" class="category-tags"></div>
+        </div>
+        
+        <div class="form-group">
+          <label>Products by Category</label>
+          <div id="productsByCategory">
+            <div style="background: #2a2a2a; padding: 16px; border-radius: 8px; margin-bottom: 12px;">
+              <h4 style="color: #4ade80; margin: 0 0 8px 0;">E-Liquids (12 products)</h4>
+              <div style="font-size: 12px; color: #a3a3a3;">Nicotine Salts, Freebase, Disposables</div>
+            </div>
+            <div style="background: #2a2a2a; padding: 16px; border-radius: 8px; margin-bottom: 12px;">
+              <h4 style="color: #60a5fa; margin: 0 0 8px 0;">Devices (12 products)</h4>
+              <div style="font-size: 12px; color: #a3a3a3;">Mods, Pods, Tanks, Coils</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-actions">
+          <button class="btn btn-secondary" onclick="closeModal('supplierDetailsModal')">Close</button>
+          <button class="btn btn-primary" onclick="editSupplier()">Edit Supplier</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add/Edit Supplier Modal -->
+    <div class="modal-overlay" id="supplierModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="modalTitle">Add New Supplier</h3>
+          <button class="close-btn" onclick="closeModal('supplierModal')">&times;</button>
+        </div>
+        
+        <form id="supplierForm">
+          <div class="form-group">
+            <label>Supplier Name *</label>
+            <input type="text" id="supplierName" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Contact Email *</label>
+            <input type="email" id="supplierEmail" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="tel" id="supplierPhone">
+          </div>
+          
+          <div class="form-group">
+            <label>Address</label>
+            <textarea id="supplierAddress"></textarea>
+          </div>
+          
+          <div class="form-group">
+             <label>Categories Supplied *</label>
+            <div class="category-checkboxes">
+              <label class="category-checkbox">
+                <input type="checkbox" value="Units"> Units
+              </label>
+              <label class="category-checkbox">
+                <input type="checkbox" value="Disposable"> Disposable
+              </label>
+              <label class="category-checkbox">
+                <input type="checkbox" value="E-juice"> E-juice
+              </label>
+              <label class="category-checkbox">
+                <input type="checkbox" value="Hardware"> Hardware
+              </label>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Notes</label>
+            <textarea id="supplierNotes" placeholder="Additional notes about this supplier..."></textarea>
+          </div>
+        </form>
+        
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('supplierModal')">Cancel</button>
+          <button type="button" class="btn btn-primary" onclick="saveSupplier()">Save Supplier</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Archive Modal -->
+    <div class="modal-overlay" id="archiveModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title">Archive</h3>
+          <button class="close-btn" onclick="closeModal('archiveModal')">&times;</button>
+        </div>
+        <div class="archive-tabs">
+          <button class="archive-tab active" onclick="openArchiveTab('active')">Active Suppliers</button>
+          <button class="archive-tab" onclick="openArchiveTab('deleted')">Deleted Suppliers</button>
+        </div>
+        <div class="archive-content active" id="activeArchiveContent">
+          <div id="activeSuppliersContent">
+            <!-- Active suppliers will be populated dynamically -->
+          </div>
+        </div>
+        <div class="archive-content" id="deletedArchiveContent">
+          <!-- No deleted suppliers -->
+          <p style="text-align: center; color: #a3a3a3; margin: 40px 0;">No deleted suppliers found.</p>
+          <button id="emptyArchiveBtn" onclick="emptyArchive()" style="display: block; margin: 20px auto; padding: 8px 16px; background: #dc2626; color: white; border: none; border-radius: 6px; cursor: pointer;">Empty Archive</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="global.js"></script>
+    <script>
+      // Suppliers data will be loaded from the database
+      let suppliers = [];
+
+      let currentSupplierId = null;
+      // archivedSuppliers is no longer needed as we use the database
+
+             // Global variables
+       let rows = [];
+       
+       // Remove any legacy localStorage-backed suppliers data to ensure DB is the source of truth
+       try { localStorage.removeItem('suppliers'); localStorage.removeItem('archivedSuppliers'); } catch {}
+
+       function applyFilters() {
+         const select = document.getElementById('supplierCategory');
+         const search = document.getElementById('supplierSearch');
+         const category = (select && select.value) || 'all';
+         const query = ((search && search.value) || '').toLowerCase();
+         rows.forEach(r => {
+           const categories = r.getAttribute('data-categories') || '';
+           const text = r.textContent.toLowerCase();
+           const matchCat = (category === 'all' || categories.includes(category));
+           const matchText = (!query || text.includes(query));
+           r.style.display = (matchCat && matchText) ? '' : 'none';
+         });
+       }
+
+       // Global function to load suppliers
+       async function loadSuppliers(){
+         const tbody = document.querySelector('#suppliersTable tbody');
+         if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="color:#a3a3a3; padding:12px">Loading suppliers...</td></tr>';
+         try {
+           const res = await fetch('api/suppliers.php');
+           const data = await res.json();
+           suppliers = (res.ok && data.ok) ? (data.data||[]) : [];
+           if (!tbody) return;
+           if (!suppliers.length) { tbody.innerHTML = '<tr><td colspan="6" style="color:#a3a3a3; padding:12px">No suppliers yet.</td></tr>'; rows = []; return; }
+           tbody.innerHTML = suppliers.map(s=>{
+             const cats = (Array.isArray(s.categories)?s.categories:[]).join(',');
+             const tags = (Array.isArray(s.categories)?s.categories:[]).map(cat=>`<span class="category-tag">${cat}</span>`).join('');
+             return `
+               <tr data-id="${s.id}" data-categories="${cats}">
+                 <td>${s.name}</td>
+                 <td>${s.email||''}</td>
+                 <td><div class="category-tags">${tags}</div></td>
+                 <td>—</td>
+                 <td><span class="status-badge active">Active</span></td>
+                 <td class="actions">
+                   <button class="action-btn view-details" title="View Details">👁️</button>
+                   <button class="action-btn edit-supplier" title="Edit">✏️</button>
+                   <button class="action-btn delete-supplier" title="Delete">🗑️</button>
+                 </td>
+               </tr>`;
+           }).join('');
+           rows = Array.from(document.querySelectorAll('#suppliersTable tbody tr'));
+           wireRowButtons();
+           updateArchiveDisplay();
+           applyFilters();
+         } catch(_) { if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="color:#a3a3a3; padding:12px">Unable to load suppliers.</td></tr>'; }
+       }
+
+       // Initialize the page after DOM is ready
+       document.addEventListener('DOMContentLoaded', () => {
+         const select = document.getElementById('supplierCategory');
+         const search = document.getElementById('supplierSearch');
+         if (select) select.addEventListener('change', applyFilters);
+         if (search) search.addEventListener('input', applyFilters);
+         const addBtn = document.getElementById('addSupplierBtn');
+         if (addBtn) addBtn.addEventListener('click', openAddSupplierModal);
+         // Log Delivery launcher
+         const logBtn = document.getElementById('logDeliveryBtn');
+         if (logBtn) logBtn.addEventListener('click', () => {
+           const sel = document.getElementById('ldSupplier');
+           if (sel) {
+             sel.innerHTML = suppliers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+           }
+           const d = document.getElementById('ldDate');
+           if (d) d.valueAsDate = new Date();
+           openModal('logDeliveryModal');
+         });
+         loadSuppliers();
+       });
+       
+       // Global function to wire row buttons
+       function wireRowButtons(){
+         document.querySelectorAll('.view-details').forEach(btn => {
+           btn.addEventListener('click', (e) => {
+             const row = e.target.closest('tr');
+             const supplierName = row.cells[0].textContent;
+             openSupplierDetails(supplierName);
+           });
+         });
+         document.querySelectorAll('.edit-supplier').forEach(btn => {
+           btn.addEventListener('click', (e) => {
+             const row = e.target.closest('tr');
+             const supplierName = row.cells[0].textContent;
+             openEditSupplierModal(supplierName);
+           });
+         });
+         document.querySelectorAll('.delete-supplier').forEach(btn => {
+           btn.addEventListener('click', (e) => {
+             const row = e.target.closest('tr');
+             const id = Number(row.getAttribute('data-id'));
+             const supplierName = row.cells[0].textContent;
+             deleteSupplier(id, supplierName);
+           });
+         });
+         // Re-bind archive modal open button
+         const openArchiveBtn = document.getElementById('openArchiveBtn');
+         if (openArchiveBtn) openArchiveBtn.onclick = () => openModal('archiveModal');
+        }
+
+      // Stock movement localStorage helpers
+      function getStockMovements() {
+        try { return JSON.parse(localStorage.getItem('stockMovements') || '[]'); } catch { return []; }
+      }
+      function setStockMovements(list) {
+        localStorage.setItem('stockMovements', JSON.stringify(list));
+      }
+
+      // Log Delivery save handler
+
+      async function saveDelivery() {
+        const supplier = (document.getElementById('ldSupplier')?.value || '').trim();
+        const product = (document.getElementById('ldProduct')?.value || '').trim();
+        const category = (document.getElementById('ldCategory')?.value || '').trim();
+        const qty = Number(document.getElementById('ldQty')?.value || 0);
+        const unitCost = Number(document.getElementById('ldUnitCost')?.value || 0);
+        const date = document.getElementById('ldDate')?.value;
+
+        if (!supplier || !product || !category || !qty || !date) {
+          alert('Please fill in supplier, product, category, quantity, and date.');
+          return;
+        }
+
+        try {
+          // Save to DB
+          const res = await fetch('api/stock_in.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ supplier, product, category, qty, unitCost, date })
+          });
+          const data = await res.json();
+          if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to save');
+
+          // Mirror to localStorage for reports/dashboard
+          const entries = getStockMovements();
+          entries.push({ id: Date.now(), type: 'IN', date, supplier, product, category, qty, unitCost });
+          setStockMovements(entries);
+
+          closeModal('logDeliveryModal');
+          alert('Delivery logged and saved to database.');
+        } catch (e) {
+          alert('Server error: ' + (e?.message || e));
+        }
+      }
+
+       // Modal functions
+       function openModal(modalId) {
+         const el = document.getElementById(modalId);
+         if (!el) return;
+         el.style.display = 'flex';
+         if (modalId === 'archiveModal') {
+           updateArchiveDisplay();
+         }
+       }
+
+       function closeModal(modalId) {
+         const el = document.getElementById(modalId);
+         if (!el) return;
+         el.style.display = 'none';
+       }
+
+      function openAddSupplierModal() {
+        currentSupplierId = null;
+        document.getElementById('modalTitle').textContent = 'Add New Supplier';
+        document.getElementById('supplierForm').reset();
+        openModal('supplierModal');
+      }
+
+      function openEditSupplierModal(supplierName) {
+        const supplier = suppliers.find(s => s.name === supplierName);
+        if (!supplier) return;
+        
+        currentSupplierId = supplier.id;
+        document.getElementById('modalTitle').textContent = 'Edit Supplier';
+        
+        // Populate form
+        document.getElementById('supplierName').value = supplier.name;
+        document.getElementById('supplierEmail').value = supplier.email;
+        document.getElementById('supplierPhone').value = supplier.phone || '';
+        document.getElementById('supplierAddress').value = supplier.address || '';
+        document.getElementById('supplierNotes').value = supplier.notes || '';
+        
+        // Reset checkboxes
+        document.querySelectorAll('.category-checkbox input').forEach(cb => {
+          cb.checked = false;
+        });
+        
+        // Check appropriate categories
+        supplier.categories.forEach(cat => {
+          const checkbox = document.querySelector(`.category-checkbox input[value="${cat}"]`);
+          if (checkbox) checkbox.checked = true;
+        });
+        
+        openModal('supplierModal');
+      }
+
+      function openSupplierDetails(supplierName) {
+        const supplier = suppliers.find(s => s.name === supplierName);
+        if (!supplier) return;
+        
+        // Populate details
+        document.getElementById('detailSupplierName').value = supplier.name;
+        document.getElementById('detailContact').value = supplier.email;
+        
+        // Update stats
+        document.getElementById('totalProducts').textContent = supplier.totalProducts;
+        document.getElementById('totalOrders').textContent = supplier.totalOrders;
+        document.getElementById('totalSpent').textContent = `₱${supplier.totalSpent.toLocaleString()}`;
+        document.getElementById('avgOrderValue').textContent = `₱${supplier.avgOrderValue}`;
+        
+        // Update categories
+        const categoriesContainer = document.getElementById('detailCategories');
+        categoriesContainer.innerHTML = supplier.categories.map(cat => 
+          `<span class="category-tag">${cat}</span>`
+        ).join('');
+        
+        openModal('supplierDetailsModal');
+      }
+
+      async function saveSupplier() {
+        const form = document.getElementById('supplierForm');
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return;
+        }
+        
+        const selectedCategories = Array.from(document.querySelectorAll('.category-checkbox input:checked'))
+          .map(cb => cb.value);
+        
+        if (selectedCategories.length === 0) {
+          alert('Please select at least one category');
+          return;
+        }
+        
+        const supplierData = {
+          name: document.getElementById('supplierName').value,
+          email: document.getElementById('supplierEmail').value,
+          phone: document.getElementById('supplierPhone').value,
+          address: document.getElementById('supplierAddress').value,
+          categories: selectedCategories,
+          notes: document.getElementById('supplierNotes').value
+        };
+        
+        try {
+          if (currentSupplierId) {
+            // Update existing supplier
+            const response = await fetch('api/suppliers.php', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: currentSupplierId, ...supplierData })
+            });
+            const result = await response.json();
+            if (!result.ok) throw new Error(result.error || 'Failed to update supplier');
+          } else {
+            // Add new supplier
+            const response = await fetch('api/suppliers.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(supplierData)
+            });
+            const result = await response.json();
+            if (!result.ok) throw new Error(result.error || 'Failed to add supplier');
+          }
+          
+          closeModal('supplierModal');
+          await loadSuppliers(); // Reload data from database
+        } catch (error) {
+          alert('Error: ' + error.message);
+        }
+      }
+
+      async function deleteSupplier(id, supplierName) {
+        if (confirm(`Are you sure you want to delete ${supplierName}?`)) {
+          try {
+            const response = await fetch(`api/suppliers.php?id=${id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: id, status: 'deleted' })
+            });
+            const result = await response.json();
+            if (!result.ok) throw new Error(result.error || 'Failed to delete supplier');
+            
+            await loadSuppliers(); // Reload data from database
+            alert(`${supplierName} has been moved to archive.`);
+          } catch (error) {
+            alert('Error: ' + error.message);
+          }
+        }
+      }
+
+      function editSupplier() {
+        closeModal('supplierDetailsModal');
+        const supplierName = document.getElementById('detailSupplierName').value;
+        openEditSupplierModal(supplierName);
+      }
+
+      function openArchiveTab(status) {
+        document.querySelectorAll('.archive-tab').forEach(tab => {
+          tab.classList.remove('active');
+        });
+        document.querySelectorAll('.archive-content').forEach(content => {
+          content.classList.remove('active');
+        });
+
+        document.querySelector(`.archive-tab[onclick="openArchiveTab('${status}')"]`).classList.add('active');
+        document.getElementById(`${status}ArchiveContent`).classList.add('active');
+        
+        // Update the content for the active tab
+        if (status === 'active') {
+          updateActiveSuppliersDisplay();
+        } else if (status === 'deleted') {
+          updateArchiveDisplay();
+        }
+      }
+
+      // (removed duplicate restore/permanent delete; single implementations below)
+
+      // This function is no longer needed as we use the database
+      // function addToArchive(supplier) {
+      //   const archivedSupplier = {
+      //     id: Date.now(),
+      //     name: supplier.name,
+      //     email: supplier.email,
+      //     phone: supplier.phone || '',
+      //     categories: supplier.categories,
+      //     deletedDate: new Date().toLocaleDateString()
+      //   };
+      //   archivedSuppliers.push(archivedSupplier);
+      //   updateArchiveDisplay();
+      // }
+      
+      async function updateArchiveDisplay() {
+        try {
+          // Fetch deleted suppliers from database
+          const response = await fetch('api/suppliers.php?status=deleted');
+          const result = await response.json();
+          const deletedSuppliers = result.ok ? result.data : [];
+          
+          // Update deleted suppliers display
+          const deletedContent = document.getElementById('deletedArchiveContent');
+          if (deletedSuppliers.length === 0) {
+            deletedContent.innerHTML = '<p style="text-align: center; color: #a3a3a3; margin: 40px 0;">No deleted suppliers found.</p>';
+          } else {
+            let html = '';
+            deletedSuppliers.forEach(supplier => {
+              const categoryTags = Array.isArray(supplier.categories) 
+                ? supplier.categories.map(cat => `<span class="category-tag">${cat}</span>`).join('')
+                : '';
+              html += `
+                <div class="archive-item">
+                  <div class="archive-item-header">
+                    <div class="archive-item-name">${supplier.name}</div>
+                    <div class="archive-item-date">Deleted: ${new Date(supplier.created_at).toLocaleDateString()}</div>
+                  </div>
+                  <div class="archive-item-email">${supplier.email || ''}</div>
+                  <div class="archive-item-categories">${categoryTags}</div>
+                  <div class="archive-item-actions">
+                    <button class="restore-btn" onclick="restoreSupplier(${supplier.id})">Restore</button>
+                    <button class="permanent-delete-btn" onclick="permanentDeleteSupplier(${supplier.id})">Delete Permanently</button>
+                  </div>
+                </div>
+              `;
+            });
+            deletedContent.innerHTML = html;
+          }
+          
+          // Update active suppliers display
+          updateActiveSuppliersDisplay();
+        } catch (error) {
+          console.error('Error updating archive display:', error);
+        }
+      }
+      
+       function updateActiveSuppliersDisplay() {
+        const activeContent = document.getElementById('activeSuppliersContent');
+        const activeRows = document.querySelectorAll('#suppliersTable tbody tr');
+        
+        if (activeRows.length === 0) {
+          activeContent.innerHTML = '<p style="text-align: center; color: #a3a3a3; margin: 40px 0;">No active suppliers found.</p>';
+        } else {
+          let html = '<table id="activeSuppliersTable"><thead><tr><th>Name</th><th>Email</th></tr></thead><tbody>';
+          activeRows.forEach(row => {
+            const name = row.cells[0].textContent.trim();
+            const email = row.cells[1].textContent.trim();
+            html += `
+              <tr>
+                <td>${name}</td>
+                <td>${email}</td>
+              </tr>
+            `;
+          });
+          html += '</tbody></table>';
+          activeContent.innerHTML = html;
+        }
+      }
+      
+       async function restoreSupplier(id) {
+        if (confirm(`Are you sure you want to restore this supplier?`)) {
+          try {
+            const response = await fetch('api/suppliers.php', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: id, status: 'active' })
+            });
+            const result = await response.json();
+            if (!result.ok) throw new Error(result.error || 'Failed to restore supplier');
+            
+            await loadSuppliers(); // Reload data from database
+            await updateArchiveDisplay(); // Update archive display
+            alert('Supplier has been restored successfully!');
+          } catch (error) {
+            alert('Error: ' + error.message);
+          }
+        }
+      }
+      
+       async function permanentDeleteSupplier(id) {
+        if (confirm(`Are you sure you want to permanently delete this supplier? This action cannot be undone.`)) {
+          try {
+            const response = await fetch(`api/suppliers.php?id=${id}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (!result.ok) throw new Error(result.error || 'Failed to permanently delete supplier');
+            
+            await updateArchiveDisplay(); // Update archive display
+            alert('Supplier has been permanently deleted!');
+          } catch (error) {
+            alert('Error: ' + error.message);
+          }
+        }
+      }
+      
+      async function emptyArchive() {
+        if (confirm(`Are you sure you want to empty the archive? This action cannot be undone.`)) {
+          try {
+            // Get all deleted suppliers and permanently delete them
+            const response = await fetch('api/suppliers.php?status=deleted');
+            const result = await response.json();
+            const deletedSuppliers = result.ok ? result.data : [];
+            
+            for (const supplier of deletedSuppliers) {
+              await fetch(`api/suppliers.php?id=${supplier.id}`, { method: 'DELETE' });
+            }
+            
+            await updateArchiveDisplay();
+            alert('Archive has been emptied successfully!');
+          } catch (error) {
+            alert('Error: ' + error.message);
+          }
+        }
+      }
+    </script>
+  </body>
+</html>

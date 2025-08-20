@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>Add New Product</title>
+    <link rel="stylesheet" href="global.css" />
+    <link rel="stylesheet" href="add_products.css" />
+  </head>
+  <body>
+    <main class="add-product" role="main">
+      <div class="div">
+        <header class="header">
+          <div class="div-2">
+            <h1 class="text-wrapper">Add New Product</h1>
+          </div>
+        </header>
+        <section class="main">
+          <form class="form" id="addProductForm" novalidate>
+            <div class="div-wrapper">
+              <div class="div-3">
+                <div class="frame-wrapper">
+                  <div class="vector-wrapper"><img class="img" src="svg/camera.svg" alt="Upload icon" /></div>
+                </div>
+                <p class="p">Drag and drop your product image here</p>
+                <div class="text-wrapper-3">or</div>
+                <button class="button-2" type="button"><span class="text-wrapper-4">Browse Files</span></button>
+                <p class="text-wrapper-5">Maximum file size: 5MB (PNG, JPG)</p>
+                <input
+                  type="file"
+                  id="product-image"
+                  accept="image/png,image/jpeg"
+                  style="display: none"
+                  aria-label="Product image upload"
+                />
+              </div>
+            </div>
+            <div class="div-4">
+              <div class="div-5">
+                <div class="label"><label class="text-wrapper-6" for="product-name">Product Name</label></div>
+                <input
+                  class="input"
+                  placeholder="Enter product name"
+                  type="text"
+                  id="product-name"
+                  name="productName"
+                  required
+                  aria-describedby="product-name-error"
+                />
+                <div id="product-name-error" class="error-message" role="alert" aria-live="polite"></div>
+              </div>
+              <div class="div-6">
+                <div class="label"><label class="text-wrapper-7" for="category-select">Category</label></div>
+                <div class="select-wrapper">
+                  <select
+                    class="select"
+                    id="category-select"
+                    name="category"
+                    required
+                    aria-describedby="category-error"
+                  >
+                    <option value="" disabled selected>Select category</option>
+                    <option value="Units">Units</option>
+                    <option value="Disposable">Disposable</option>
+                    <option value="E-juice">E-juice</option>
+                    <option value="Hardware">Hardware</option>
+              
+                  </select>
+                  <div class="img-wrapper" aria-hidden="true"><img class="vector-2" src="img/image.svg" alt="" /></div>
+                </div>
+                <div id="category-error" class="error-message" role="alert" aria-live="polite"></div>
+              </div>
+              <div class="div-7">
+                <div class="div-8">
+                  <div class="label-2"><label class="text-wrapper-9" for="quantity">Quantity (Stock)</label></div>
+                  <input
+                    class="input-2"
+                    type="number"
+                    id="quantity"
+                    name="quantity"
+                    value="0"
+                    min="0"
+                    step="1"
+                    required
+                    aria-describedby="quantity-error"
+                  />
+                  <div id="quantity-error" class="error-message" role="alert" aria-live="polite"></div>
+                  <button class="button-5" type="button"><span class="text-wrapper-16">Add QR Code</span></button>
+                </div>
+                <div class="div-9">
+                  <div class="label-2"><label class="text-wrapper-11" for="price">Price</label></div>
+                  <div class="overlap-group-wrapper">
+                    <div class="overlap-group">
+                      <input
+                        class="input-3"
+                        type="number"
+                        id="price"
+                        name="price"
+                        value="0.00"
+                        min="0"
+                        step="0.01"
+                        required
+                        aria-describedby="price-error"
+                      />
+                      <span class="text-wrapper-13" aria-hidden="true">₱</span>
+                    </div>
+                  </div>
+                  <div id="price-error" class="error-message" role="alert" aria-live="polite"></div>
+                </div>
+              </div>
+            </div>
+            <div class="div-10">
+              <button class="button-3" type="button" onclick="parent.postMessage({ type: 'close-add-product' }, '*')"><span class="text-wrapper-14">Cancel</span></button>
+              <button class="button-4" type="submit"><span class="text-wrapper-15">Add Product</span></button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+    <script>
+      (function(){
+        const form = document.getElementById('addProductForm');
+        const nameEl = document.getElementById('product-name');
+        const catEl = document.getElementById('category-select');
+        const qtyEl = document.getElementById('quantity');
+        const priceEl = document.getElementById('price');
+        const fileInput = document.getElementById('product-image');
+        const browseBtn = document.querySelector('.button-2');
+        const dropZone = document.querySelector('.div-wrapper');
+        const previewImg = document.querySelector('.img');
+        
+        let selectedFile = null;
+
+        // File browsing functionality
+        browseBtn?.addEventListener('click', () => {
+          fileInput?.click();
+        });
+
+        fileInput?.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (file) {
+            handleFile(file);
+          }
+        });
+
+        // Drag and drop functionality
+        dropZone?.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          dropZone.style.border = '2px dashed #3b82f6';
+        });
+
+        dropZone?.addEventListener('dragleave', () => {
+          dropZone.style.border = '';
+        });
+
+        dropZone?.addEventListener('drop', (e) => {
+          e.preventDefault();
+          dropZone.style.border = '';
+          const file = e.dataTransfer.files[0];
+          if (file && file.type.match('image.*')) {
+            handleFile(file);
+          } else {
+            alert('Please select a valid image file (PNG, JPG)');
+          }
+        });
+
+        function handleFile(file) {
+          if (!file.type.match('image.*')) {
+            alert('Please select a valid image file (PNG, JPG)');
+            return;
+          }
+
+          if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            return;
+          }
+
+          selectedFile = file;
+          
+          // Preview the image
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            previewImg.src = e.target.result;
+            previewImg.style.display = 'block';
+          };
+          reader.readAsDataURL(file);
+        }
+
+        form?.addEventListener('submit', async (e)=>{
+          e.preventDefault();
+          const name = nameEl?.value?.trim();
+          const category = catEl?.value || '';
+          const stock = Number(qtyEl?.value || 0);
+          const price = Number(priceEl?.value || 0);
+          
+          if (!name || !category) { 
+            alert('Please enter product name and select category'); 
+            return; 
+          }
+
+          const formData = new FormData();
+          formData.append('name', name);
+          formData.append('category', category);
+          formData.append('stock', stock);
+          formData.append('price', price);
+          
+          if (selectedFile) {
+            formData.append('image', selectedFile);
+          }
+
+          try {
+            const res = await fetch('api/products.php', {
+              method: 'POST', 
+              credentials: 'same-origin',
+              body: formData
+            });
+            
+            const ct = res.headers.get('content-type') || '';
+            const text = await res.text();
+            let data = null;
+            
+            if (ct.includes('application/json')) {
+              try { data = JSON.parse(text); } catch (_) {}
+            }
+            if (!data) { throw new Error('Server returned non-JSON: ' + text.slice(0, 200)); }
+            if (!res.ok || !data.ok) throw new Error(data.error||'Failed to add');
+            
+            // Mirror IN movement locally so inventory baselines and reports can reflect immediate addition
+            try {
+              const moves = JSON.parse(localStorage.getItem('stockMovements')||'[]');
+              moves.push({ id: Date.now(), type:'IN', date: new Date().toISOString(), supplier:'Manual', product:name, category, qty: stock, unitCost: 0 });
+              localStorage.setItem('stockMovements', JSON.stringify(moves));
+            } catch(_){ }
+            
+            alert('Product added');
+            parent.postMessage({ type: 'close-add-product' }, '*');
+          } catch (err) {
+            alert('Server error: ' + (err?.message || err));
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>

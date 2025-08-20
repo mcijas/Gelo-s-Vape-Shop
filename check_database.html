@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Connection Check</title>
+    <link rel="stylesheet" href="global.css">
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            background: #111;
+            color: white;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #262626;
+            border-radius: 10px;
+            padding: 30px;
+        }
+        h1 {
+            color: #4ade80;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .status-card {
+            background: #1f1f1f;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .status-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .status-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            margin-right: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .status-icon.success {
+            background: #4ade80;
+            color: #111;
+        }
+        .status-icon.error {
+            background: #ef4444;
+            color: white;
+        }
+        .status-icon.warning {
+            background: #f59e0b;
+            color: #111;
+        }
+        .status-icon.loading {
+            background: #3b82f6;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        .status-title {
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .status-message {
+            margin-top: 10px;
+        }
+        .action-button {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 10px;
+            border: none;
+            cursor: pointer;
+        }
+        .action-button:hover {
+            background: #2563eb;
+        }
+        .action-button.disabled {
+            background: #6b7280;
+            cursor: not-allowed;
+        }
+        .dashboard-link {
+            display: block;
+            background: #4ade80;
+            color: #111;
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 30px;
+        }
+        .dashboard-link:hover {
+            background: #22c55e;
+        }
+        code {
+            background: #111;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .log {
+            background: #111;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        .log p {
+            margin: 5px 0;
+        }
+        .log .success {
+            color: #4ade80;
+        }
+        .log .error {
+            color: #ef4444;
+        }
+        .log .info {
+            color: #60a5fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Database Connection Check</h1>
+        
+        <div id="xampp-status" class="status-card">
+            <div class="status-header">
+                <div class="status-icon loading">⟳</div>
+                <div class="status-title">Checking XAMPP Status...</div>
+            </div>
+            <div class="status-message">Verifying if XAMPP services are running...</div>
+        </div>
+        
+        <div id="mysql-status" class="status-card">
+            <div class="status-header">
+                <div class="status-icon loading">⟳</div>
+                <div class="status-title">Checking MySQL Connection...</div>
+            </div>
+            <div class="status-message">Attempting to connect to MySQL server...</div>
+        </div>
+        
+        <div id="database-status" class="status-card">
+            <div class="status-header">
+                <div class="status-icon loading">⟳</div>
+                <div class="status-title">Checking Database...</div>
+            </div>
+            <div class="status-message">Verifying if 'gelo_pos' database exists...</div>
+        </div>
+        
+        <div id="tables-status" class="status-card">
+            <div class="status-header">
+                <div class="status-icon loading">⟳</div>
+                <div class="status-title">Checking Tables...</div>
+            </div>
+            <div class="status-message">Verifying if required tables exist...</div>
+        </div>
+        
+        <div id="data-status" class="status-card">
+            <div class="status-header">
+                <div class="status-icon loading">⟳</div>
+                <div class="status-title">Checking Sample Data...</div>
+            </div>
+            <div class="status-message">Verifying if sample data is available...</div>
+        </div>
+        
+        <div id="log" class="log" style="display: none;">
+            <p class="info">Starting database checks...</p>
+        </div>
+        
+        <button id="init-db" class="action-button disabled">Initialize Database</button>
+        <a href="Pages/dashboard.html" class="dashboard-link">Go to Dashboard</a>
+    </div>
+
+    <script>
+        // Status elements
+        const xamppStatus = document.getElementById('xampp-status');
+        const mysqlStatus = document.getElementById('mysql-status');
+        const databaseStatus = document.getElementById('database-status');
+        const tablesStatus = document.getElementById('tables-status');
+        const dataStatus = document.getElementById('data-status');
+        const logElement = document.getElementById('log');
+        const initDbButton = document.getElementById('init-db');
+        
+        // Helper function to update status
+        function updateStatus(element, status, message, details = null) {
+            const iconElement = element.querySelector('.status-icon');
+            const messageElement = element.querySelector('.status-message');
+            
+            iconElement.className = `status-icon ${status}`;
+            
+            if (status === 'success') {
+                iconElement.innerHTML = '✓';
+            } else if (status === 'error') {
+                iconElement.innerHTML = '✗';
+            } else if (status === 'warning') {
+                iconElement.innerHTML = '!';
+            } else {
+                iconElement.innerHTML = '⟳';
+            }
+            
+            messageElement.innerHTML = message;
+            
+            if (details) {
+                const detailsElement = document.createElement('div');
+                detailsElement.className = 'log';
+                detailsElement.innerHTML = details;
+                messageElement.appendChild(detailsElement);
+            }
+        }
+        
+        // Helper function to add log entry
+        function addLog(message, type = 'info') {
+            logElement.style.display = 'block';
+            const logEntry = document.createElement('p');
+            logEntry.className = type;
+            logEntry.textContent = message;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        // Check database connection and status
+        async function checkDatabaseStatus() {
+            try {
+                // Step 1: Check if we can reach the server
+                updateStatus(xamppStatus, 'loading', 'Checking if XAMPP is running...');
+                addLog('Checking if XAMPP is running...');
+                
+                const serverResponse = await fetch('api/server_status.php')
+                    .catch(() => ({ ok: false }));
+                
+                if (!serverResponse.ok) {
+                    updateStatus(xamppStatus, 'error', 'XAMPP appears to be not running. Please start XAMPP and Apache service.');
+                    addLog('XAMPP check failed. Server not responding.', 'error');
+                    enableInitButton(false);
+                    return;
+                }
+                
+                updateStatus(xamppStatus, 'success', 'XAMPP is running.');
+                addLog('XAMPP is running.', 'success');
+                
+                // Step 2: Check MySQL connection
+                updateStatus(mysqlStatus, 'loading', 'Checking MySQL connection...');
+                addLog('Checking MySQL connection...');
+                
+                const dbCheckResponse = await fetch('api/db_check.php');
+                const dbCheckData = await dbCheckResponse.json();
+                
+                if (!dbCheckData.mysql_connected) {
+                    updateStatus(mysqlStatus, 'error', 'Cannot connect to MySQL. Please make sure MySQL service is running.');
+                    addLog('MySQL connection failed: ' + dbCheckData.error, 'error');
+                    enableInitButton(false);
+                    return;
+                }
+                
+                updateStatus(mysqlStatus, 'success', 'Successfully connected to MySQL server.');
+                addLog('MySQL connection successful.', 'success');
+                
+                // Step 3: Check if database exists
+                updateStatus(databaseStatus, 'loading', 'Checking if database exists...');
+                addLog('Checking if database exists...');
+                
+                if (!dbCheckData.database_exists) {
+                    updateStatus(databaseStatus, 'warning', 'Database "gelo_pos" does not exist.');
+                    addLog('Database "gelo_pos" not found.', 'error');
+                    enableInitButton(true);
+                    return;
+                }
+                
+                updateStatus(databaseStatus, 'success', 'Database "gelo_pos" exists.');
+                addLog('Database "gelo_pos" exists.', 'success');
+                
+                // Step 4: Check if tables exist
+                updateStatus(tablesStatus, 'loading', 'Checking if tables exist...');
+                addLog('Checking if required tables exist...');
+                
+                if (!dbCheckData.tables_exist) {
+                    updateStatus(tablesStatus, 'warning', 'Some required tables are missing.');
+                    addLog('Some required tables are missing.', 'error');
+                    enableInitButton(true);
+                    return;
+                }
+                
+                const tableDetails = `
+                    <p>Tables found:</p>
+                    <ul>
+                        ${dbCheckData.tables.map(table => `<li>${table.name}: ${table.count} records</li>`).join('')}
+                    </ul>
+                `;
+                
+                updateStatus(tablesStatus, 'success', 'All required tables exist.', tableDetails);
+                addLog('All required tables exist.', 'success');
+                
+                // Step 5: Check if sample data exists
+                updateStatus(dataStatus, 'loading', 'Checking if sample data exists...');
+                addLog('Checking if sample data exists...');
+                
+                if (!dbCheckData.has_data) {
+                    updateStatus(dataStatus, 'warning', 'No sample data found in the database.');
+                    addLog('No sample data found.', 'error');
+                    enableInitButton(true);
+                    return;
+                }
+                
+                updateStatus(dataStatus, 'success', 'Sample data is available in the database.');
+                addLog('Sample data is available.', 'success');
+                enableInitButton(false);
+                
+            } catch (error) {
+                addLog('Error during database check: ' + error.message, 'error');
+                console.error('Error during database check:', error);
+            }
+        }
+        
+        // Enable or disable the init button
+        function enableInitButton(enable) {
+            if (enable) {
+                initDbButton.classList.remove('disabled');
+                initDbButton.addEventListener('click', initializeDatabase);
+            } else {
+                initDbButton.classList.add('disabled');
+                initDbButton.removeEventListener('click', initializeDatabase);
+            }
+        }
+        
+        // Initialize database
+        async function initializeDatabase() {
+            try {
+                initDbButton.classList.add('disabled');
+                initDbButton.textContent = 'Initializing...';
+                addLog('Initializing database...');
+                
+                const response = await fetch('api/init_db.php');
+                const text = await response.text();
+                
+                addLog('Database initialization response: ' + text, 'info');
+                
+                // Refresh the page after 2 seconds
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+                
+            } catch (error) {
+                addLog('Error initializing database: ' + error.message, 'error');
+                console.error('Error initializing database:', error);
+                initDbButton.classList.remove('disabled');
+                initDbButton.textContent = 'Initialize Database';
+            }
+        }
+        
+        // Start the checks when page loads
+        window.addEventListener('load', checkDatabaseStatus);
+    </script>
+</body>
+</html>

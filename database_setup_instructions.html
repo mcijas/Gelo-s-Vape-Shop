@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Setup Instructions</title>
+    <link rel="stylesheet" href="global.css">
+    <style>
+        body {
+            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            background: #111;
+            color: white;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #262626;
+            border-radius: 10px;
+            padding: 30px;
+        }
+        h1 {
+            color: #4ade80;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h2 {
+            color: #60a5fa;
+            margin: 25px 0 15px;
+            border-bottom: 1px solid #3b3b3b;
+            padding-bottom: 8px;
+        }
+        .step {
+            background: #1f1f1f;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .step-number {
+            display: inline-block;
+            background: #3b82f6;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            margin-right: 10px;
+        }
+        .step-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        code {
+            background: #111;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        pre {
+            background: #111;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .note {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid #f59e0b;
+            padding: 10px 15px;
+            margin: 15px 0;
+        }
+        .dashboard-link {
+            display: block;
+            background: #3b82f6;
+            color: white;
+            text-align: center;
+            padding: 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-top: 30px;
+        }
+        .dashboard-link:hover {
+            background: #2563eb;
+        }
+        img {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #3b3b3b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Database Setup Instructions</h1>
+        
+        <p>Your dashboard is not showing any data because there's an issue with the database connection. Follow these steps to fix the problem:</p>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">1</span> Start XAMPP Control Panel</div>
+            <p>First, you need to make sure XAMPP is running:</p>
+            <ol>
+                <li>Find and open the XAMPP Control Panel (usually located at <code>C:\xampp\xampp-control.exe</code>)</li>
+                <li>Start the Apache and MySQL services by clicking the "Start" buttons next to them</li>
+                <li>Make sure both services show a green status</li>
+            </ol>
+            <div class="note">Note: If you don't have XAMPP installed, you'll need to <a href="https://www.apachefriends.org/download.html" style="color: #f59e0b;">download and install it</a> first.</div>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">2</span> Create the Database</div>
+            <p>Once XAMPP is running, you need to create the database:</p>
+            <ol>
+                <li>Open your web browser and go to <a href="http://localhost/phpmyadmin" style="color: #60a5fa;">http://localhost/phpmyadmin</a></li>
+                <li>Click on "New" in the left sidebar</li>
+                <li>Enter <code>gelo_pos</code> as the database name</li>
+                <li>Select <code>utf8mb4_unicode_ci</code> as the collation</li>
+                <li>Click "Create"</li>
+            </ol>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">3</span> Initialize the Database</div>
+            <p>After creating the database, you need to initialize it with tables and sample data:</p>
+            <ol>
+                <li>Open your web browser and go to <a href="http://localhost/12/api/init_db.php" style="color: #60a5fa;">http://localhost/12/api/init_db.php</a></li>
+                <li>This script will create all necessary tables and add sample data</li>
+                <li>You should see a success message confirming the database has been initialized</li>
+            </ol>
+        </div>
+        
+        <div class="step">
+            <div class="step-title"><span class="step-number">4</span> Verify Database Connection</div>
+            <p>To make sure your database connection is working properly:</p>
+            <ol>
+                <li>Check that the database connection settings in <code>api/db.php</code> match your XAMPP configuration:</li>
+                <pre>$host = '127.0.0.1';
+$db   = 'gelo_pos';
+$user = 'root';
+$pass = '';</pre>
+                <li>These are the default settings for XAMPP. If you've changed your MySQL password, update the <code>$pass</code> value.</li>
+            </ol>
+        </div>
+        
+        <h2>Common Issues and Solutions</h2>
+        
+        <div class="step">
+            <div class="step-title">MySQL Service Not Running</div>
+            <p>If you see an error about MySQL connection failing:</p>
+            <ul>
+                <li>Check if the MySQL service is running in XAMPP Control Panel</li>
+                <li>If it won't start, check the XAMPP error logs</li>
+                <li>Try restarting your computer and then starting XAMPP again</li>
+            </ul>
+        </div>
+        
+        <div class="step">
+            <div class="step-title">Wrong Database Name</div>
+            <p>If you're using a different database name:</p>
+            <ul>
+                <li>Edit <code>api/db.php</code> and change the <code>$db</code> variable to match your database name</li>
+                <li>Make sure the database exists in phpMyAdmin</li>
+            </ul>
+        </div>
+        
+        <div class="step">
+            <div class="step-title">Port Conflicts</div>
+            <p>If XAMPP services won't start due to port conflicts:</p>
+            <ul>
+                <li>Open XAMPP Control Panel</li>
+                <li>Click on "Config" for the service that won't start</li>
+                <li>Change the port numbers to unused ports</li>
+                <li>Restart the services</li>
+            </ul>
+        </div>
+        
+        <a href="Pages/dashboard.html" class="dashboard-link">Go to Dashboard</a>
+    </div>
+</body>
+</html>

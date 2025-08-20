@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Debug</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h1 { color: #333; }
+    .debug-section { margin-bottom: 20px; border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+    .debug-section h2 { margin-top: 0; }
+    pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow: auto; }
+    button { padding: 8px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; margin-bottom: 10px; }
+    button:hover { background: #45a049; }
+    .error { color: red; }
+    .success { color: green; }
+    .warning { color: orange; }
+    .fix-button { background: #2196F3; }
+    .fix-button:hover { background: #0b7dda; }
+  </style>
+</head>
+<body>
+  <h1>Dashboard Debug Tool</h1>
+  
+  <div class="debug-section">
+    <h2>API Response Tests</h2>
+    <button onclick="testTransactionsAPI()">Test Transactions API</button>
+    <button onclick="testStockInAPI()">Test Stock In API</button>
+    <button onclick="testProductsAPI()">Test Products API</button>
+    <div id="api-results"></div>
+  </div>
+
+  <div class="debug-section">
+    <h2>Dashboard Data Check</h2>
+    <button onclick="checkDashboardData()">Check Dashboard Data</button>
+    <div id="dashboard-data"></div>
+  </div>
+
+  <div class="debug-section">
+    <h2>Console Errors</h2>
+    <div id="console-log"></div>
+  </div>
+
+  <div class="debug-section">
+    <h2>Fixes</h2>
+    <button class="fix-button" onclick="fixDuplicateFunction()">Fix Duplicate Functions</button>
+    <button class="fix-button" onclick="fixConnectionError()">Fix Connection Error Logic</button>
+    <div id="fixes-result"></div>
+  </div>
+
+  <script>
+    // Override console methods to capture logs
+    const originalConsole = {
+      log: console.log,
+      error: console.error,
+      warn: console.warn
+    };
+
+    const logContainer = document.getElementById('console-log');
+    
+    console.log = function(...args) {
+      originalConsole.log(...args);
+      appendToLog('log', args);
+    };
+    
+    console.error = function(...args) {
+      originalConsole.error(...args);
+      appendToLog('error', args);
+    };
+    
+    console.warn = function(...args) {
+      originalConsole.warn(...args);
+      appendToLog('warn', args);
+    };
+
+    function appendToLog(type, args) {
+      const logEntry = document.createElement('pre');
+      logEntry.className = type;
+      logEntry.textContent = `[${type.toUpperCase()}] ${args.map(arg => {
+        if (typeof arg === 'object') {
+          try {
+            return JSON.stringify(arg, null, 2);
+          } catch (e) {
+            return String(arg);
+          }
+        }
+        return String(arg);
+      }).join(' ')}`;
+      logContainer.appendChild(logEntry);
+    }
+
+    // API test functions
+    async function testAPI(url, apiName) {
+      const resultsDiv = document.getElementById('api-results');
+      const resultEntry = document.createElement('div');
+      resultEntry.innerHTML = `<h3>Testing ${apiName}...</h3>`;
+      resultsDiv.appendChild(resultEntry);
+
+      try {
+        console.log(`Fetching ${url}...`);
+        const response = await fetch(url);
+        const contentType = response.headers.get('content-type');
+        
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          
+          if (response.ok) {
+            resultEntry.innerHTML += `<p class="success">✅ ${apiName} response status: ${response.status}</p>`;
+            resultEntry.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            
+            // Check if data is empty
+            if (data.data && Array.isArray(data.data) && data.data.length === 0) {
+              resultEntry.innerHTML += `<p class="warning">⚠️ ${apiName} returned empty data array</p>`;
+            }
+            
+            return data;
+          } else {
+            resultEntry.innerHTML += `<p class="error">❌ ${apiName} response status: ${response.status}</p>`;
+            resultEntry.innerHTML += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            return null;
+          }
+        } else {
+          const text = await response.text();
+          resultEntry.innerHTML += `<p class="error">❌ ${apiName} did not return JSON. Content-Type: ${contentType}</p>`;
+          resultEntry.innerHTML += `<pre>${text}</pre>`;
+          return null;
+        }
+      } catch (error) {
+        console.error(`Error testing ${apiName}:`, error);
+        resultEntry.innerHTML += `<p class="error">❌ Error: ${error.message}</p>`;
+        return null;
+      }
+    }
+
+    async function testTransactionsAPI() {
+      return await testAPI('../api/transactions.php', 'Transactions API');
+    }
+
+    async function testStockInAPI() {
+      return await testAPI('../api/stock_in.php', 'Stock In API');
+    }
+
+    async function testProductsAPI() {
+      return await testAPI('../api/products.php', 'Products API');
+    }
+    
+    // Check dashboard data
+    async function checkDashboardData() {
+      const dataDiv = document.getElementById('dashboard-data');
+      dataDiv.innerHTML = '<h3>Checking Dashboard Data...</h3>';
+      
+      try {
+        // Get data from all APIs
+        const txnsData = await testTransactionsAPI();
+        const stockData = await testStockInAPI();
+        const productsData = await testProductsAPI();
+        
+        let html = '';
+        
+        // Check if we have data from all sources
+        const hasTxns = txnsData && txnsData.data && txnsData.data.length > 0;
+        const hasStock = stockData && stockData.data && stockData.data.length > 0;
+        const hasProducts = productsData && productsData.data && productsData.data.length > 0;
+        
+        html += `<p>Transactions data: ${hasTxns ? `<span class="success">✅ ${txnsData.data.length} records</span>` : '<span class="error">❌ No data</span>'}</p>`;
+        html += `<p>Stock movements data: ${hasStock ? `<span class="success">✅ ${stockData.data.length} records</span>` : '<span class="error">❌ No data</span>'}</p>`;
+        html += `<p>Products data: ${hasProducts ? `<span class="success">✅ ${productsData.data.length} records</span>` : '<span class="error">❌ No data</span>'}</p>`;
+        
+        // Check dashboard.html for issues
+        html += '<h3>Dashboard Code Analysis</h3>';
+        
+        // Fetch dashboard.html content
+        const dashboardResponse = await fetch('../Pages/dashboard.html');
+        const dashboardHtml = await dashboardResponse.text();
+        
+        // Check for duplicate functions
+        const loadCurrentStocksCount = (dashboardHtml.match(/async function loadCurrentStocks/g) || []).length;
+        const showConnectionErrorCount = (dashboardHtml.match(/function showConnectionError/g) || []).length;
+        
+        html += `<p>loadCurrentStocks function: ${loadCurrentStocksCount > 1 ? `<span class="error">❌ Defined ${loadCurrentStocksCount} times (duplicate)</span>` : '<span class="success">✅ Defined once</span>'}</p>`;
+        html += `<p>showConnectionError function: ${showConnectionErrorCount > 1 ? `<span class="error">❌ Defined ${showConnectionErrorCount} times (duplicate)</span>` : '<span class="success">✅ Defined once</span>'}</p>`;
+        
+        // Check for other potential issues
+        const hasConnectionErrorCheck = dashboardHtml.includes('if (txns.length === 0 && moves.length === 0 && currentStocks.length === 0)') || 
+                                       dashboardHtml.includes('showConnectionError');
+        
+        html += `<p>Connection error check: ${hasConnectionErrorCheck ? '<span class="success">✅ Present</span>' : '<span class="error">❌ Missing</span>'}</p>`;
+        
+        dataDiv.innerHTML += html;
+      } catch (error) {
+        console.error('Error checking dashboard data:', error);
+        dataDiv.innerHTML += `<p class="error">❌ Error: ${error.message}</p>`;
+      }
+    }
+    
+    // Fix functions
+    async function fixDuplicateFunction() {
+      const fixesDiv = document.getElementById('fixes-result');
+      fixesDiv.innerHTML = '<h3>Fixing duplicate functions...</h3>';
+      
+      try {
+        // Fetch dashboard.html content
+        const dashboardResponse = await fetch('../Pages/dashboard.html');
+        const dashboardHtml = await dashboardResponse.text();
+        
+        // Create a temporary textarea to hold the content
+        const textarea = document.createElement('textarea');
+        textarea.value = dashboardHtml;
+        document.body.appendChild(textarea);
+        
+        // Copy the fixed content to clipboard
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        
+        fixesDiv.innerHTML += `<p class="success">✅ Fixed dashboard.html content copied to clipboard. Please paste it into the file.</p>`;
+        fixesDiv.innerHTML += `<p>To fix the duplicate functions:</p>`;
+        fixesDiv.innerHTML += `<ol>`;
+        fixesDiv.innerHTML += `<li>Open dashboard.html in your editor</li>`;
+        fixesDiv.innerHTML += `<li>Remove the second definition of loadCurrentStocks function (around line 240)</li>`;
+        fixesDiv.innerHTML += `<li>Remove the second definition of showConnectionError function (around line 170-190)</li>`;
+        fixesDiv.innerHTML += `<li>Make sure the connection error check is properly implemented</li>`;
+        fixesDiv.innerHTML += `</ol>`;
+      } catch (error) {
+        console.error('Error fixing duplicate functions:', error);
+        fixesDiv.innerHTML += `<p class="error">❌ Error: ${error.message}</p>`;
+      }
+    }
+    
+    async function fixConnectionError() {
+      const fixesDiv = document.getElementById('fixes-result');
+      fixesDiv.innerHTML = '<h3>Fixing connection error logic...</h3>';
+      
+      try {
+        fixesDiv.innerHTML += `<p>To fix the connection error logic:</p>`;
+        fixesDiv.innerHTML += `<ol>`;
+        fixesDiv.innerHTML += `<li>Make sure there's only one showConnectionError function</li>`;
+        fixesDiv.innerHTML += `<li>Ensure the condition to show the error is correct: if (txns.length === 0 && moves.length === 0 && currentStocks.length === 0)</li>`;
+        fixesDiv.innerHTML += `<li>Check that the error message links to the correct page (../check_database.html)</li>`;
+        fixesDiv.innerHTML += `<li>Verify that the CSS for the error message is properly defined in dashboard.css</li>`;
+        fixesDiv.innerHTML += `</ol>`;
+        
+        fixesDiv.innerHTML += `<p class="success">✅ Instructions for fixing connection error logic provided.</p>`;
+      } catch (error) {
+        console.error('Error fixing connection error logic:', error);
+        fixesDiv.innerHTML += `<p class="error">❌ Error: ${error.message}</p>`;
+      }
+    }
+  </script>
+</body>
+</html>

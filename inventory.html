@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f0f; color: #e7e7e7; }
+        .container { display: flex; height: 100vh; }
+        .sidebar { width: 250px; background: #1a1a1a; border-right: 1px solid #333; padding: 20px; }
+        .sidebar h2 { color: #e7e7e7; margin-bottom: 20px; font-size: 18px; }
+        .sidebar a { display: block; color: #a3a3a3; text-decoration: none; padding: 10px 0; border-bottom: 1px solid #333; }
+        .sidebar a:hover { color: #e7e7e7; }
+        .main-content { flex: 1; padding: 20px; overflow-y: auto; }
+        .toolbar { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
+        .toolbar input, .toolbar select { padding: 8px; background: #1f2223; border: 1px solid #3a3a3a; border-radius: 4px; color: #e7e7e7; }
+        .toolbar button { padding: 8px 16px; background: #059669; color: #e7e7e7; border: none; border-radius: 4px; cursor: pointer; }
+        .toolbar button:hover { background: #047857; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { background: #1a1a1a; color: #e7e7e7; }
+        tr:hover { background: #1a1a1a; cursor: pointer; }
+        .thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
+        .stock-badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 8px; }
+        .critical-stock { background: #dc2626; color: #e7e7e7; }
+        .low-stock { background: #d97706; color: #e7e7e7; }
+        .normal-stock { background: #059669; color: #e7e7e7; }
+        .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); backdrop-filter: blur(2px); align-items: center; justify-content: center; z-index: 1000; }
+        .modal { background: #262626; border: 1px solid #333; border-radius: 12px; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,.5); width: 600px; max-width: 95vw; }
+        .close-modal { position: absolute; top: 8px; right: 10px; width: 32px; height: 32px; border-radius: 6px; border: 1px solid #3a3a3a; background: #1f2223; color: #e7e7e7; cursor: pointer; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; color: #e7e7e7; margin-bottom: 5px; }
+        .form-group input, .form-group select { width: 100%; padding: 8px; background: #1f2223; border: 1px solid #3a3a3a; border-radius: 4px; color: #e7e7e7; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end; }
+        .btn-primary { padding: 10px 20px; background: #059669; color: #e7e7e7; border: none; border-radius: 6px; cursor: pointer; }
+        .btn-secondary { padding: 10px 20px; background: #3a3a3a; color: #e7e7e7; border: none; border-radius: 6px; cursor: pointer; }
+        .action-btn { background: none; border: none; color: #e7e7e7; cursor: pointer; margin: 0 2px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>Navigation</h2>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="pos.html">Point of Sale</a>
+            <a href="product_list.html">Products</a>
+            <a href="inventory.html">Inventory</a>
+            <a href="reports.html">Reports</a>
+            <a href="customers.html">Customers</a>
+        </div>
+        
+        <div class="main-content">
+            <h1>Inventory Management</h1>
+            
+            <div class="toolbar">
+                <select id="categoryFilter">
+                    <option value="all">All Categories</option>
+                </select>
+                <input type="text" id="searchInput" placeholder="Search products...">
+                <button id="openAddProduct">Add Product</button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="productTableBody">
+                    <tr><td colspan="6" style="color:#a3a3a3; padding:12px">Loading products...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div id="addProductModal" class="overlay">
+        <div class="modal">
+            <button type="button" class="close-modal" onclick="closeAddProduct()">×</button>
+            <h2>Add New Product</h2>
+            <form id="addProductForm">
+                <div class="form-group">
+                    <label>Product Name</label>
+                    <input type="text" id="productName" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <input type="text" id="productCategory" required>
+                </div>
+                <div class="form-group">
+                    <label>Price (₱)</label>
+                    <input type="number" id="productPrice" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Initial Stock</label>
+                    <input type="number" id="productStock" min="0" required>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+                    <button type="button" class="btn-secondary" onclick="closeAddProduct()">Cancel</button>
+                    <button type="submit" class="btn-primary">Add Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div id="editProductModal" class="overlay">
+        <div class="modal">
+            <button type="button" class="close-modal" onclick="closeEditProduct()">×</button>
+            <h2>Edit Product & Manage Stock</h2>
+            <form id="editProductForm">
+                <input type="hidden" id="editProductId">
+                <div class="form-group">
+                    <label>Product Name</label>
+                    <input type="text" id="editProductName" required>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <input type="text" id="editProductCategory" required>
+                </div>
+                <div class="form-group">
+                    <label>Price (₱)</label>
+                    <input type="number" id="editProductPrice" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Current Stock</label>
+                    <input type="number" id="editProductStock" min="0" required>
+                </div>
+                <div class="form-row">
+                    <div>
+                        <label>Add Stock</label>
+                        <input type="number" id="addStockAmount" min="1" value="1">
+                    </div>
+                    <button type="button" class="btn-primary" onclick="addStock()">Add Stock</button>
+                </div>
+                <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+                    <button type="button" class="btn-secondary" onclick="closeEditProduct()">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let products = {};
+        let currentEditProduct = null;
+
+        // Modal functions
+        function openAddProduct() {
+            document.getElementById('addProductModal').style.display = 'flex';
+        }
+
+        function closeAddProduct() {
+            document.getElementById('addProductModal').style.display = 'none';
+            document.getElementById('addProductForm').reset();
+        }
+
+        function openEditProduct(product) {
+            currentEditProduct = product;
+            document.getElementById('editProductId').value = product.id;
+            document.getElementById('editProductName').value = product.name;
+            document.getElementById('editProductCategory').value = product.category || '';
+            document.getElementById('editProductPrice').value = product.price || 0;
+            document.getElementById('editProductStock').value = product.stock || 0;
+            document.getElementById('addStockAmount').value = 1;
+            document.getElementById('editProductModal').style.display = 'flex';
+        }
+
+        function closeEditProduct() {
+            document.getElementById('editProductModal').style.display = 'none';
+            currentEditProduct = null;
+        }
+
+        // Add stock function
+        async function addStock() {
+            if (!currentEditProduct) return;
+
+            const amount = parseInt(document.getElementById('addStockAmount').value) || 0;
+            if (amount <= 0) {
+                alert('Please enter a valid amount');
+                return;
+            }
+
+            const newStock = currentEditProduct.stock + amount;
+
+            try {
+                const res = await fetch('api/products.php', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: currentEditProduct.id,
+                        stock: newStock
+                    })
+                });
+                const data = await res.json();
+                
+                if (data.ok) {
+                    // Track stock movement
+                    const movements = JSON.parse(localStorage.getItem('stockMovements') || '[]');
+                    movements.push({
+                        id: Date.now(),
+                        type: 'IN',
+                        date: new Date().toISOString(),
+                        supplier: 'Manual',
+                        product: currentEditProduct.name,
+                        category: currentEditProduct.category,
+                        qty: amount,
+                        unitCost: 0
+                    });
+                    localStorage.setItem('stockMovements', JSON.stringify(movements));
+
+                    alert(`Added ${amount} units to ${currentEditProduct.name}`);
+                    document.getElementById('editProductStock').value = newStock;
+                    currentEditProduct.stock = newStock;
+                    loadProducts();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to add stock'));
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        // Load products
+        async function loadProducts() {
+            const tbody = document.getElementById('productTableBody');
+            tbody.innerHTML = '<tr><td colspan="6" style="color:#a3a3a3; padding:12px">Loading products...</td></tr>';
+
+            try {
+                const res = await fetch('api/products.php');
+                const data = await res.json();
+                const list = (res.ok && data.ok) ? (data.data || []) : [];
+
+                if (!list.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="color:#a3a3a3; padding:12px">No products found.</td></tr>';
+                    return;
+                }
+
+                const fmt = (n) => '₱' + Number(n || 0).toLocaleString('en-PH');
+                products = {};
+                
+                tbody.innerHTML = list.map(p => {
+                    products[p.id] = p;
+                    const badgeClass = (p.stock <= 5) ? 'critical-stock' : (p.stock <= 15) ? 'low-stock' : 'normal-stock';
+                    const badgeText = (p.stock <= 5) ? 'Critical' : (p.stock <= 15) ? 'Low' : 'Normal';
+                    return `
+                        <tr onclick="openEditProduct(products[${p.id}])" style="cursor:pointer;">
+                            <td><img class="thumb" src="${p.image_url ? p.image_url : '../img/rectangle-10.png'}" alt="${p.name}"></td>
+                            <td>${p.name}</td>
+                            <td>${p.category || '—'}</td>
+                            <td>${fmt(p.price)}</td>
+                            <td><span class="stock-count">${p.stock || 0}</span><span class="stock-badge ${badgeClass}">${badgeText}</span></td>
+                            <td onclick="event.stopPropagation()">
+                                <button class="action-btn edit-btn" onclick="openEditProduct(products[${p.id}])" title="Edit">✏️</button>
+                                <button class="action-btn delete-btn" onclick="deleteProduct(${p.id})" title="Delete">🗑️</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                // Update category filter
+                const categories = [...new Set(list.map(p => p.category).filter(Boolean))];
+                const categoryFilter = document.getElementById('categoryFilter');
+                categoryFilter.innerHTML = '<option value="all">All Categories</option>';
+                categories.forEach(cat => {
+                    categoryFilter.innerHTML += `<option value="${cat.toLowerCase()}">${cat}</option>`;
+                });
+
+            } catch (err) {
+                tbody.innerHTML = '<tr><td colspan="6" style="color:#a3a3a3; padding:12px">Unable to load products.</td></tr>';
+            }
+        }
+
+        // Add product
+        document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('productName').value,
+                category: document.getElementById('productCategory').value,
+                price: parseFloat(document.getElementById('productPrice').value),
+                stock: parseInt(document.getElementById('productStock').value)
+            };
+
+            try {
+                const res = await fetch('api/products.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                const data = await res.json();
+                
+                if (data.ok) {
+                    alert('Product added successfully!');
+                    closeAddProduct();
+                    loadProducts();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to add product'));
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        });
+
+        // Edit product
+        document.getElementById('editProductForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentEditProduct) return;
+
+            const formData = {
+                id: parseInt(document.getElementById('editProductId').value),
+                name: document.getElementById('editProductName').value,
+                category: document.getElementById('editProductCategory').value,
+                price: parseFloat(document.getElementById('editProductPrice').value),
+                stock: parseInt(document.getElementById('editProductStock').value)
+            };
+
+            try {
+                const res = await fetch('api/products.php', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                const data = await res.json();
+                
+                if (data.ok) {
+                    alert('Product updated successfully!');
+                    closeEditProduct();
+                    loadProducts();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to update product'));
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        });
+
+        // Delete product
+        async function deleteProduct(productId) {
+            if (!confirm('Are you sure you want to delete this product?')) return;
+            
+            try {
+                const res = await fetch(`api/products.php?id=${productId}`, { method: 'DELETE' });
+                const data = await res.json();
+                
+                if (data.ok) {
+                    alert('Product deleted successfully!');
+                    loadProducts();
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to delete product'));
+                }
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        // Filter functionality
+        document.getElementById('categoryFilter').addEventListener('change', filterProducts);
+        document.getElementById('searchInput').addEventListener('input', filterProducts);
+
+        function filterProducts() {
+            const categoryFilter = document.getElementById('categoryFilter').value.toLowerCase();
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#productTableBody tr');
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const name = cells[1].textContent.toLowerCase();
+                const category = cells[2].textContent.toLowerCase();
+                
+                const matchesCategory = categoryFilter === 'all' || category.includes(categoryFilter);
+                const matchesSearch = name.includes(searchTerm);
+                
+                row.style.display = matchesCategory && matchesSearch ? '' : 'none';
+            });
+        }
+
+        // Initialize
+        loadProducts();
+    </script>
+</body>
+</html>

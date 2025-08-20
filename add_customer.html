@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>Add New Customer</title>
+    <link rel="stylesheet" href="global.css" />
+    <link rel="stylesheet" href="add_customer.css" />
+  </head>
+  <body>
+    <main class="add-customer">
+      <section class="div">
+        <header class="h">
+          <h1 class="text-wrapper">Add New Customer</h1>
+        </header>
+        <form class="form" role="form" aria-labelledby="form-title" novalidate id="addCustomerForm">
+          <div id="form-title" class="sr-only">Add new customer form</div>
+          <fieldset class="div-2">
+            <legend class="sr-only">Customer Information</legend>
+            <div class="div-3">
+              <div class="label">
+                <span class="text-wrapper-2" id="customer-id-label">Customer ID</span>
+              </div>
+              <div class="input" role="textbox" aria-readonly="true" aria-labelledby="customer-id-label">
+                <span class="text-wrapper-3">AUTO-GENERATED</span>
+              </div>
+            </div>
+            <div class="div-4">
+              <div class="label">
+                <label class="text-wrapper-4" for="input-1">Full Name</label>
+              </div>
+              <input
+                class="input-2"
+                placeholder="Enter customer name"
+                type="text"
+                id="input-1"
+                name="fullName"
+                required
+                aria-required="true"
+                aria-describedby="fullname-error"
+                autocomplete="name"
+              />
+              <div id="fullname-error" class="error-message" role="alert" aria-live="polite"></div>
+            </div>
+            <div class="div-5">
+              <div class="label">
+                <label class="text-wrapper-5" for="input-2">Email Address</label>
+              </div>
+              <input
+                class="input-2"
+                placeholder="Enter email address"
+                type="email"
+                id="input-2"
+                name="email"
+                required
+                aria-required="true"
+                aria-describedby="email-error"
+                autocomplete="email"
+              />
+              <div id="email-error" class="error-message" role="alert" aria-live="polite"></div>
+            </div>
+            <div class="div-6">
+              <div class="label">
+                <label class="text-wrapper-6" for="input-3">Phone Number</label>
+              </div>
+              <input
+                class="input-2"
+                placeholder="Enter phone number"
+                type="tel"
+                id="input-3"
+                name="phone"
+                required
+                aria-required="true"
+                aria-describedby="phone-error"
+                autocomplete="tel"
+              />
+              <div id="phone-error" class="error-message" role="alert" aria-live="polite"></div>
+            </div>
+          </fieldset>
+          <div class="div-7" role="group" aria-label="Form actions">
+            <button class="button" type="submit" aria-describedby="add-customer-description">
+              <span class="text-wrapper-7">Add Customer</span>
+              <span class="i" aria-hidden="true">
+                <span class="svg">
+                  <span class="frame"></span>
+                </span>
+              </span>
+            </button>
+            <div id="add-customer-description" class="sr-only">Submit the form to add a new customer</div>
+            <button class="div-wrapper" type="button" aria-label="Cancel adding customer" onclick="parent.postMessage({ type: 'close-add-customer' }, '*')">
+              <span class="text-wrapper-8">Cancel</span>
+            </button>
+          </div>
+        </form>
+      </section>
+      <script>
+        (function(){
+          const form = document.getElementById('addCustomerForm');
+          const nameEl = document.getElementById('input-1');
+          const emailEl = document.getElementById('input-2');
+          const phoneEl = document.getElementById('input-3');
+          form?.addEventListener('submit', async (e)=>{
+            e.preventDefault();
+            const name = nameEl?.value?.trim();
+            const email = emailEl?.value?.trim();
+            const phone = phoneEl?.value?.trim();
+            if (!name) { alert('Please enter a name'); return; }
+            try {
+              const res = await fetch('api/customers.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ name, email, phone }) });
+              const data = await res.json();
+              if (!res.ok || !data.ok) throw new Error(data.error||'Failed to add customer');
+              parent.postMessage({ type: 'close-add-customer' }, '*');
+            } catch (err) {
+              alert('Server error: ' + (err?.message || err));
+            }
+          });
+        })();
+      </script>
+    </main>
+  </body>
+</html>

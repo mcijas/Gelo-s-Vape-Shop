@@ -1,0 +1,100 @@
+.edit-customer { background-color: #1f1f1f; display: block; width: 100%; min-height: 100%; padding: 16px; }
+  
+.edit-customer .overlap-group-wrapper { background: transparent; border: 0; width: 100%; max-width: 720px; margin: 0 auto; height: auto; }
+  
+.edit-customer .overlap-group { position: static; width: 100%; height: auto; }
+  
+.edit-customer .h { position: static; width: auto; height: auto; margin: 0 0 12px; }
+  
+.edit-customer .text-wrapper { position: static; color: #f5f5f5; font-size: 18px; font-weight: 700; }
+  
+.edit-customer .form { position: static; width: 100%; border: 0; display: flex; flex-direction: column; gap: 14px; margin-top: 48px; }
+  
+.edit-customer .div { position: static; width: 100%; height: auto; border: 0; display: grid; gap: 14px; }
+  
+.edit-customer .div-2, .edit-customer .div-3, .edit-customer .div-4 { position: static; width: 100%; height: auto; border: 0; }
+  
+.edit-customer .label { position: static; width: auto; height: auto; border: 0; margin-bottom: 6px; }
+  
+.edit-customer .text-wrapper-2, .edit-customer .text-wrapper-3, .edit-customer .text-wrapper-4 { position: static; color: #d4d4d4; font-size: 14px; }
+  
+.edit-customer .input { position: static; width: 100%; height: 42px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 8px; color: #e5e5e5; padding: 0 12px; font-size: 14px; }
+.edit-customer .input::placeholder { color: #8c8c8c; }
+  
+/* remove leftover absolute rules from earlier export */
+.edit-customer .div-3 { position: static; width: 100%; height: auto; border: 0; }
+  
+  .edit-customer .text-wrapper-3 { position: static; color: #d4d4d4; font-size: 14px; }
+  
+  .edit-customer .div-4 { position: static; width: 100%; height: auto; border: 0; }
+  
+  .edit-customer .text-wrapper-4 { position: static; color: #d4d4d4; font-size: 14px; }
+  
+.edit-customer .div-5 { position: static; width: 100%; display: flex; gap: 10px; align-items: center; margin-top: 8px; }
+  
+.edit-customer .button { all: unset; box-sizing: border-box; height: 40px; padding: 0 14px; background: #525252; border: 1px solid #3f3f3f; border-radius: 8px; color: #fff; cursor: pointer; }
+  
+.edit-customer .text-wrapper-5 { position: static; font-size: 14px; }
+  
+.edit-customer .div-wrapper { all: unset; box-sizing: border-box; height: 40px; padding: 0 12px; background: #3a3a3a; border: 1px solid #3f3f3f; border-radius: 8px; color: #d4d4d4; cursor: pointer; }
+  
+.edit-customer .text-wrapper-6 { position: static; font-size: 14px; }
+  
+.edit-customer .status-wrapper { position: static; width: 100%; margin-top: 6px; }
+.edit-customer .status-label { position: static; color: #d4d4d4; font-size: 14px; display: block; margin-bottom: 6px; }
+.edit-customer .status { position: static; width: 100%; height: 42px; background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 8px; color: #e5e5e5; padding: 0 12px; appearance: none; -webkit-appearance: none; -moz-appearance: none; cursor: pointer; }
+/* Dynamic text color for selected status */
+.edit-customer .status.is-active { color: #22c55e; } /* green */
+.edit-customer .status.is-inactive { color: #f87171; } /* red */
+.edit-customer .status.is-pending { color: #67e8f9; } /* cyan */
+/* Option colors (supported in most browsers) */
+.edit-customer .status option[value="active"] { color: #22c55e; }
+.edit-customer .status option[value="inactive"] { color: #f87171; }
+.edit-customer .status option[value="pending"] { color: #67e8f9; }
+  
+/* text-wrapper-7 not used in new layout */
+  
+.edit-customer .vector { display: none; }
+  /* Original CSS code should be injected here */
+  
+  .edit-customer fieldset {
+    border: none;
+    margin: 0;
+    padding: 0;
+  }
+  
+/* status wrapper positioning handled by normal flow */
+  
+.edit-customer .status-label { position: static; color: #d4d4d4; font-size: 14px; display: block; margin-bottom: 6px; }
+  
+/* old absolute status rules removed */
+  
+  .edit-customer .status:focus {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+  }
+  
+.edit-customer .vector { display: none; }
+  
+  .edit-customer .input:focus {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+    border-color: #4a90e2;
+  }
+  
+  .edit-customer .button:hover {
+    background-color: #666666;
+  }
+  
+  .edit-customer .div-wrapper:hover {
+    background-color: #4a4a4a;
+  }
+  
+  .edit-customer .button:active {
+    background-color: #3a3a3a;
+  }
+  
+  .edit-customer .div-wrapper:active {
+    background-color: #333333;
+  }
+  

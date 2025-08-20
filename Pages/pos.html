@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>POS System - Gelo's Vape Shop</title>
+    <link rel="stylesheet" href="../global.css" />
+    <link rel="stylesheet" href="../pos.css" />
+  </head>
+  <body>
+    <div class="container">
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <div class="brand"><img src="../gelo.png" alt="Gelo's Vape Shop logo" /></div>
+          <nav class="nav">
+            <ul class="nav-list">
+              <li><a href="dashboard.html"><span class="icon">🏠</span><span class="label">Dashboard</span></a></li>
+              <li class="has-submenu">
+                <a href="inventory.html"><span class="icon">📦</span><span class="label">Inventory</span></a>
+                <ul class="submenu">
+                  <li><a href="../product_list.html">Product List</a></li>
+                </ul>
+              </li>
+              <li><a href="pos.html" class="active"><span class="icon">🧾</span><span class="label">POS</span></a></li>
+              <li><a href="../customers.html"><span class="icon">👥</span><span class="label">Customer</span></a></li>
+              <li><a href="../suppliers.html"><span class="icon">🚚</span><span class="label">Suppliers</span></a></li>
+              <li class="has-submenu">
+                <a href="../reports.php"><span class="icon">📊</span><span class="label">Reports</span></a>
+                <ul class="submenu">
+                  <li><a href="../reports.html#sales-reports">Sales Reports</a></li>
+                  <li><a href="../reports.html#inventory-reports">Inventory Reports</a></li>
+                  <li><a href="../reports.html#financial-reports">Financial Reports</a></li>
+                  <li><a href="../reports.html#supplier-reports">Supplier Reports</a></li>
+                  <li><a href="../reports.html#customer-reports">Customer Reports</a></li>
+                  <li><a href="../reports.html#operational-reports">Operational Reports</a></li>
+                </ul>
+              </li>
+              <li><a href="../settings.html"><span class="icon">⚙️</span><span class="label">Settings</span></a></li>
+            </ul>
+          </nav>
+        </div>
+        <a href="../index.html" class="logout"><span class="icon">⎋</span><span class="label">Logout</span></a>
+      </aside>
+
+      <main class="main-content pos-content">
+        <div class="toolbar">
+          <div class="search-bar">
+            <input type="search" placeholder="Search products..." aria-label="Search products" />
+            <button type="submit" aria-label="Search"><span class="icon search"></span></button>
+          </div>
+          <div class="category-select">
+            <select id="categoryFilter" aria-label="Select category">
+              <option value="all">All Categories</option>
+              <option value="units">Units</option>
+              <option value="disposable">Disposable</option>
+              <option value="e-juice">E-juice</option>
+              <option value="hardware">Hardware</option>
+            </select>
+          </div>
+          <div class="refresh-section">
+            <button type="button" id="refreshStockBtn" aria-label="Refresh stock from database" title="Refresh stock levels">
+              🔄 Refresh Stock
+            </button>
+          </div>
+        </div>
+
+        <section class="pos-layout">
+          <div class="product-grid" id="productGrid">
+            <!-- Products will be loaded dynamically -->
+          </div>
+
+          <aside class="cart-panel">
+            <div class="cart-card">
+              <h2 class="cart-title">Selected Products</h2>
+              <div class="customer-row">
+                <label for="posCustomer">Customer</label>
+                <input id="posCustomer" list="posCustomerList" placeholder="Walk-in" />
+                <datalist id="posCustomerList"></datalist>
+              </div>
+              <div class="table-wrap">
+                <table class="cart-table" aria-describedby="cartTotals">
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>Product Code</th>
+                      <th>Price</th>
+                      <th class="qty-col">Quantity</th>
+                      <th>Subtotal</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="cartBody"></tbody>
+                </table>
+              </div>
+
+              <div class="totals-grid" id="cartTotals">
+                <div class="metric"><span>Total Item</span><strong id="totalItems">00</strong></div>
+                <div class="metric"><span>Total Qty</span><strong id="totalQty">00</strong></div>
+                <div class="metric"><span>Discount</span><strong id="discount">00.00</strong></div>
+                <div class="metric inputlike"><span>Coupon</span><strong id="coupon">00.00</strong></div>
+                <div class="metric inputlike"><span>Tax</span><strong id="tax">00.00</strong></div>
+                <div class="metric inputlike"><span>Shipping</span><strong id="shipping">00.00</strong></div>
+              </div>
+
+              <div class="grand-total">
+                <span>Grand Total:</span>
+                <strong id="grandTotal">0.00</strong>
+              </div>
+
+              <div class="pay-actions">
+                <button class="pay-btn cash">Cash</button>
+                <button class="pay-btn gcash">GCash</button>
+              </div>
+
+              <label class="barcode-toggle"><input type="checkbox"/> Enable Barcode Scanner</label>
+            </div>
+          </aside>
+        </section>
+      </main>
+    </div>
+    <script src="../global.js"></script>
+    <script>
+      (function() {
+        const currency = (n) => `₱${n.toFixed(2)}`;
+        let currentUserName = 'Admin';
+        // Fetch current user for cashier name and guard page
+        (async function ensureAuth(){
+          try {
+            const res = await fetch('../api/auth/me.php');
+            const data = await res.json();
+            if (!res.ok || !data.ok) throw new Error('not auth');
+            currentUserName = data.user?.name || sessionStorage.getItem('userName') || 'Admin';
+          } catch (_) {
+            const name = sessionStorage.getItem('userName');
+            if (name) { currentUserName = name; }
+            else { window.location.href = '../index.html'; }
+          }
+        })();
+        const cart = new Map();
+
+        function render() {
+          const tbody = document.getElementById('cartBody');
+          tbody.innerHTML = '';
+          let totalQty = 0; let total = 0;
+          for (const [code, item] of cart) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td class="c-name">${item.name}</td>
+              <td class="c-code">${code}</td>
+              <td class="c-price">${currency(item.price)}</td>
+              <td class="c-qty">
+                <div class="qty">
+                  <button class="minus" aria-label="Decrease">‹</button>
+                  <input type="number" min="1" value="${item.qty}" aria-label="Quantity" />
+                  <button class="plus" aria-label="Increase">›</button>
+                </div>
+              </td>
+              <td class="c-sub">${currency(item.price * item.qty)}</td>
+              <td class="c-del">
+                <button class="del icon-btn" aria-label="Remove item" title="Remove">
+                  <svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M9 3H15C15.5523 3 16 3.44772 16 4V5H20C20.5523 5 21 5.44772 21 6C21 6.55228 20.5523 7 20 7H4C3.44772 7 3 6.55228 3 6C3 5.44772 3.44772 5 4 5H8V4C8 3.44772 8.44772 3 9 3Z" fill="currentColor"/>
+                    <path d="M6 9H18L17.1066 19.2075C17.0478 19.8817 16.488 20.4 15.8111 20.4H8.18888C7.51204 20.4 6.9522 19.8817 6.8934 19.2075L6 9Z" fill="currentColor"/>
+                  </svg>
+                </button>
+              </td>`;
+            tbody.appendChild(tr);
+
+            // events
+            tr.querySelector('.minus').addEventListener('click', () => {
+              updateQty(code, item.qty - 1);
+            });
+            tr.querySelector('.plus').addEventListener('click', () => {
+              updateQty(code, item.qty + 1);
+            });
+            tr.querySelector('input').addEventListener('change', (e) => {
+              updateQty(code, parseInt(e.target.value || '1', 10));
+            });
+            tr.querySelector('.del').addEventListener('click', () => {
+              cart.delete(code); render();
+            });
+
+            totalQty += item.qty; total += item.qty * item.price;
+          }
+          document.getElementById('totalItems').textContent = String(cart.size).padStart(2,'0');
+          document.getElementById('totalQty').textContent = String(totalQty).padStart(2,'0');
+          document.getElementById('grandTotal').textContent = currency(total);
+        }
+
+        function updateQty(code, qty) {
+          if (!cart.has(code)) return;
+          const item = cart.get(code);
+          
+          // Find the product card to get actual stock
+          const productCard = document.querySelector(`[data-code="${code}"]`);
+          const stock = productCard ? parseInt(productCard.getAttribute('data-stock') || 0) : 999;
+          
+          const newQty = Math.max(1, qty || 1);
+          
+          // Validate against actual stock
+          if (newQty > stock) {
+            showNotification(`Only ${stock} units available for ${item.name}`, 'warning');
+            return;
+          }
+          
+          item.qty = newQty;
+          cart.set(code, item);
+          render();
+        }
+
+        function addToCart(el) {
+          const name = el.querySelector('.product-name')?.textContent?.trim() || 'Item';
+          const price = Number(el.getAttribute('data-price')) || 0;
+          const code = el.getAttribute('data-code') || Math.random().toString().slice(2,10);
+          const category = (el.getAttribute('data-category') || '').toLowerCase();
+          const stock = parseInt(el.getAttribute('data-stock') || 0);
+          
+          const existing = cart.get(code);
+          const currentQty = existing ? existing.qty : 0;
+          
+          // Check if adding would exceed available stock
+          if (currentQty + 1 > stock) {
+            showNotification(`Only ${stock} units available for ${name}`, 'warning');
+            return;
+          }
+          
+          if (existing) { 
+            existing.qty += 1; 
+            cart.set(code, existing); 
+          } else { 
+            cart.set(code, { name, price, qty: 1, category }); 
+          }
+          render();
+        }
+
+        // --- Persistence helpers ---
+        function getLocalArray(key) {
+          try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; }
+        }
+        function setLocalArray(key, arr) {
+          localStorage.setItem(key, JSON.stringify(arr));
+        }
+
+        // Product loading and stock management
+        // No default products; use only database products
+
+        function createProductCard(product) {
+          const card = document.createElement('article');
+          card.className = 'product-card';
+          card.setAttribute('data-category', product.category);
+          card.setAttribute('data-code', product.code);
+          card.setAttribute('data-price', product.price);
+          card.setAttribute('data-stock', product.stock || 0);
+          
+          card.innerHTML = `
+            <img src="${product.image_url ? '../' + product.image_url : '../img/rectangle-10.png'}" alt="${product.name}" class="product-image" />
+            <h3 class="product-name">${product.name}</h3>
+            <p class="product-stock">Stock: ${product.stock || 0}</p>
+            <p class="product-price">₱${Number(product.price || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+          `;
+          
+          card.addEventListener('click', () => addToCart(card));
+          return card;
+        }
+
+        function loadProducts() {
+          const grid = document.getElementById('productGrid');
+          if (!grid) return;
+
+          // Load fresh data from database
+          fetch('../api/products.php')
+            .then(res => res.json())
+            .then(data => {
+              if (data.ok && data.data && data.data.length > 0) {
+                // Use API data with database stock values
+                grid.innerHTML = '';
+                data.data.forEach(product => {
+                  const card = createProductCard({
+                    ...product,
+                    code: product.id || Math.random().toString().slice(2, 10)
+                  });
+                  grid.appendChild(card);
+                });
+              } else {
+                // Empty state
+                const grid = document.getElementById('productGrid');
+                if (grid) grid.innerHTML = '<div style="color:#a3a3a3; padding:20px">No products found. Add products to see them here.</div>';
+              }
+              updateStockLevels();
+            })
+            .catch(() => {
+              const grid = document.getElementById('productGrid');
+              if (grid) grid.innerHTML = '<div style="color:#a3a3a3; padding:20px">Unable to load products.</div>';
+            });
+        }
+
+        // removed loadDefaultProducts()
+
+        function updateStockLevels() {
+          // This function now simply ensures stock displays are accurate from database
+          // No local adjustment - use database values directly
+          document.querySelectorAll('.product-card').forEach(card => {
+            const stock = parseInt(card.getAttribute('data-stock') || 0);
+            const stockP = card.querySelector('.product-stock');
+            if (stockP) {
+              stockP.textContent = `Stock: ${stock}`;
+            }
+          });
+        }
+
+        // Function to refresh products from database
+        async function refreshProductsFromDB() {
+          try {
+            const res = await fetch('../api/products.php');
+            const data = await res.json();
+            if (res.ok && data.ok && data.data && data.data.length > 0) {
+              // Update the product grid with fresh data from database
+              const grid = document.getElementById('productGrid');
+              if (grid) {
+                grid.innerHTML = '';
+                data.data.forEach(product => {
+                  const card = createProductCard({
+                    ...product,
+                    code: product.id || Math.random().toString().slice(2, 10)
+                  });
+                  grid.appendChild(card);
+                });
+                updateStockLevels();
+                applyCategoryFilter();
+                
+                // Show success notification
+                showNotification('Stock levels refreshed from database', 'success');
+              }
+            } else {
+              showNotification('No products found in database', 'warning');
+            }
+          } catch (error) {
+            console.error('Failed to refresh products from database:', error);
+            showNotification('Failed to refresh stock: ' + error.message, 'error');
+          }
+        }
+
+        // Simple notification system
+        function showNotification(message, type = 'info') {
+          const notification = document.createElement('div');
+          notification.className = `notification ${type}`;
+          notification.textContent = message;
+          notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+          `;
+          
+          // Set background color based on type
+          switch(type) {
+            case 'success': notification.style.background = '#059669'; break;
+            case 'error': notification.style.background = '#dc2626'; break;
+            case 'warning': notification.style.background = '#d97706'; break;
+            default: notification.style.background = '#3b82f6';
+          }
+          
+          document.body.appendChild(notification);
+          
+          // Remove after 3 seconds
+          setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease-in';
+            setTimeout(() => notification.remove(), 300);
+          }, 3000);
+        }
+
+        // Load products on page load
+        loadProducts();
+        
+        // Refresh stock levels when page becomes visible (in case stock was updated in database)
+        document.addEventListener('visibilitychange', () => {
+          if (!document.hidden) {
+            loadProducts(); // Reload from database for accurate stock
+          }
+        });
+
+        async function checkout(paymentMethod) {
+          if (!cart.size) { alert('Cart is empty'); return; }
+          let total = 0; const items = [];
+          for (const [code, item] of cart) {
+            total += item.price * item.qty;
+            items.push({ code, product: item.name, qty: item.qty, price: item.price, category: item.category || '' });
+          }
+          const nowISO = new Date().toISOString();
+          const customerInput = document.getElementById('posCustomer');
+          const customerName = (customerInput?.value?.trim()) || 'Walk-in';
+          
+          // Find customer ID from customer name
+          let customerId = null;
+          if (customerName !== 'Walk-in') {
+            try {
+              const res = await fetch('../api/customers.php');
+              const data = await res.json();
+              if (res.ok && data.ok) {
+                // More flexible matching - trim spaces and case-insensitive
+                const searchName = customerName.trim().toLowerCase();
+                const customer = data.data.find(c => c.name.trim().toLowerCase() === searchName);
+                if (customer) customerId = customer.id;
+              }
+            } catch (_) {}
+          }
+          
+          const txn = {
+            id: 'TXN-' + Date.now(),
+            date: nowISO,
+            items,
+            total,
+            paymentMethod,
+            cashier: currentUserName,
+            customer: customerName,
+            customer_id: customerId
+          };
+          try {
+            const res = await fetch('../api/transactions.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify(txn)
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to save transaction');
+            // Print receipt using DB ref if available
+            const receiptTxn = { ...txn, id: data.ref || txn.id };
+            printReceipt(receiptTxn);
+
+            // Mirror to localStorage to keep other pages (customers/reports) working
+            try {
+              const txns = getLocalArray('transactions');
+              txns.push(receiptTxn);
+              setLocalArray('transactions', txns);
+
+              const movements = getLocalArray('stockMovements');
+              items.forEach(it => {
+                movements.push({
+                  date: txn.date,
+                  product: it.product,
+                  code: it.code,
+                  category: it.category || '',
+                  type: 'OUT',
+                  qty: it.qty,
+                  unitPrice: it.price,
+                  paymentMethod
+                });
+              });
+              setLocalArray('stockMovements', movements);
+            } catch(_) {}
+            cart.clear();
+            render();
+            alert('Payment successful via ' + paymentMethod + '. Transaction recorded.');
+          } catch (e) {
+            alert('Server error: ' + (e?.message || e));
+          }
+        }
+
+        function printReceipt(txn){
+          const win = window.open('', '_blank', 'width=380,height=600');
+          if (!win) return;
+          const fmt = (n)=> `₱${Number(n||0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          const rows = (txn.items||[]).map(it=>`<tr><td>${it.product}</td><td style="text-align:right">${it.qty} × ${fmt(it.price)}</td><td style="text-align:right">${fmt(it.qty*it.price)}</td></tr>`).join('');
+          win.document.write(`
+            <html><head><title>Receipt ${txn.id}</title>
+            <style>
+              body{font:14px/1.3 system-ui,Segoe UI,Roboto,Arial;padding:16px;color:#111}
+              h1{font-size:16px;margin:0 0 6px}
+              .meta{font-size:12px;color:#555;margin-bottom:10px}
+              table{width:100%;border-collapse:collapse}
+              td{padding:6px 0;border-bottom:1px solid #eee}
+              tfoot td{font-weight:700;border-top:2px solid #111;border-bottom:0}
+              .center{text-align:center}
+            </style></head><body>
+              <div class="center"><h1>Gelo's Vape Shop</h1><div class="meta">POS Receipt</div></div>
+              <div class="meta">Txn: ${txn.id}<br/>Date: ${new Date(txn.date).toLocaleString()}<br/>Cashier: ${txn.cashier||'—'}<br/>Customer: ${txn.customer||'Walk-in'}<br/>Method: ${txn.paymentMethod}</div>
+              <table>
+                <tbody>${rows}</tbody>
+                <tfoot>
+                  <tr><td>Total</td><td></td><td style="text-align:right">${fmt(txn.total||0)}</td></tr>
+                </tfoot>
+              </table>
+              <div class="center" style="margin-top:14px">Thank you!</div>
+              <script>window.onload = function(){ window.print(); }<\/script>
+            </body></html>
+          `);
+          win.document.close();
+        }
+
+        // Product cards are now created dynamically with event listeners
+
+        // Category filter (like inventory)
+        const categorySelect = document.getElementById('categoryFilter');
+        function applyCategoryFilter() {
+          const value = categorySelect ? categorySelect.value : 'all';
+          document.querySelectorAll('.product-card').forEach(card => {
+            const cat = (card.getAttribute('data-category') || '').toLowerCase();
+            card.style.display = (value === 'all' || cat === value || cat.includes(value)) ? '' : 'none';
+          });
+        }
+        if (categorySelect) categorySelect.addEventListener('change', applyCategoryFilter);
+        
+        // Apply filter after products are loaded
+        function applyFilterAfterLoad() {
+          setTimeout(applyCategoryFilter, 100);
+        }
+        window.addEventListener('load', applyFilterAfterLoad);
+
+        // Load customers for suggestions (API with local fallback)
+        (async function loadCustomerSuggestions(){
+          const dl = document.getElementById('posCustomerList');
+          let list = [];
+          try {
+            const res = await fetch('../api/customers.php');
+            const data = await res.json();
+            if (res.ok && data.ok) list = data.data || [];
+          } catch (_) {
+            try { list = JSON.parse(localStorage.getItem('customers')||'[]'); } catch {}
+          }
+          if (dl) dl.innerHTML = (list||[]).map(c=>`<option value="${c.name}">${c.phone ? ' • '+c.phone : ''}</option>`).join('');
+        })();
+
+        // Pay buttons
+        const cashBtn = document.querySelector('.pay-btn.cash');
+        const gcashBtn = document.querySelector('.pay-btn.gcash');
+        if (cashBtn) cashBtn.addEventListener('click', () => checkout('Cash'));
+        if (gcashBtn) gcashBtn.addEventListener('click', () => checkout('GCash'));
+
+        // Refresh stock button
+        const refreshStockBtn = document.getElementById('refreshStockBtn');
+        if (refreshStockBtn) {
+          refreshStockBtn.addEventListener('click', refreshProductsFromDB);
+        }
+
+        render();
+      })();
+    </script>
+  </body>
+</html>

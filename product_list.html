@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="global.css" />
+    <link rel="stylesheet" href="product_list.css" />
+  </head>
+  <body>
+    <div class="container">
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <div class="brand">
+            <img src="gelo.png" alt="Gelo's Vape Shop logo" />
+                  </div>
+          <nav class="nav">
+            <ul class="nav-list">
+              <li><a href="Pages/dashboard.html"><span class="icon">🏠</span><span class="label">Dashboard</span></a></li>
+              <li class="has-submenu">
+                <a href="Pages/inventory.html" class="active"><span class="icon">📦</span><span class="label">Inventory</span></a>
+                <ul class="submenu">
+                  <li><a href="product_list.html">Product List</a></li>
+                </ul>
+              </li>
+              <li><a href="Pages/pos.html"><span class="icon">🧾</span><span class="label">POS</span></a></li>
+              <li><a href="customers.html"><span class="icon">👥</span><span class="label">Customer</span></a></li>
+              <li><a href="suppliers.html"><span class="icon">🚚</span><span class="label">Suppliers</span></a></li>
+              <li class="has-submenu">
+                <a href="reports.html"><span class="icon">📊</span><span class="label">Reports</span></a>
+                <ul class="submenu">
+                  <li><a href="reports.html#sales-reports">Sales Reports</a></li>
+                  <li><a href="reports.html#inventory-reports">Inventory Reports</a></li>
+                  <li><a href="reports.html#financial-reports">Financial Reports</a></li>
+                  <li><a href="reports.html#supplier-reports">Supplier Reports</a></li>
+                  <li><a href="reports.html#customer-reports">Customer Reports</a></li>
+                  <li><a href="reports.html#operational-reports">Operational Reports</a></li>
+                </ul>
+              </li>
+              <li><a href="settings.html"><span class="icon">⚙️</span><span class="label">Settings</span></a></li>
+            </ul>
+          </nav>
+                  </div>
+        <a href="index.html" class="logout"><span class="icon">⎋</span><span class="label">Logout</span></a>
+      </aside>
+
+      <main class="main-content">
+        <div class="toolbar">
+          <div class="search-bar">
+            <input type="search" placeholder="Search products..." aria-label="Search products" />
+            <button type="submit" aria-label="Search"><span class="icon search"></span></button>
+                </div>
+          <div class="category-select">
+            <select aria-label="Select category" id="categoryFilter">
+              <option value="all">All Categories</option>
+              <option value="units">Units</option>
+              <option value="disposable">Disposable</option>
+              <option value="e-juice">E-juice</option>
+              <option value="hardware">Hardware</option>
+            </select>
+          </div>
+          <button class="add-product-btn" id="openAddProduct"><span class="icon add" aria-hidden="true"></span>Add Product</button>
+        </div>
+
+        <section class="table-card">
+          <table>
+            <thead>
+              <tr>
+              <th>Image</th>
+              <th>Product Name</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Stock</th>
+            </tr>
+          </thead>
+            <tbody id="productTableBody">
+              <tr><td colspan="6" style="color:#a3a3a3; padding:12px">Loading products...</td></tr>
+            </tbody>
+          </table>
+          <div class="pagination">
+            <button class="page-btn">‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">2</button>
+            <button class="page-btn">3</button>
+            <button class="page-btn">›</button>
+      </div>
+        </section>
+      </main>
+    </div>
+    <div id="addProductOverlay" class="overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter:blur(2px); align-items:center; justify-content:center; z-index:1000;">
+      <div class="modal" style="width:900px; max-width:95vw; max-height:95vh; background:#262626; border:1px solid #333; border-radius:12px; overflow:hidden; position:relative; box-shadow:0 20px 60px rgba(0,0,0,.5);">
+        <button type="button" id="closeAddProduct" style="position:absolute; top:8px; right:10px; width:32px; height:32px; border-radius:6px; border:1px solid #3a3a3a; background:#1f2223; color:#e7e7e7; cursor:pointer;">×</button>
+        <iframe src="add_products.html" title="Add Product" style="width:100%; height:80vh; border:0; display:block; background:#262626"></iframe>
+      </div>
+    </div>
+
+
+
+
+
+
+      <script>
+        // Category filter
+        const select = document.getElementById('categoryFilter');
+        const rows = Array.from(document.querySelectorAll('tbody tr'));
+        function normalize(text){ return (text || '').toLowerCase().replace(/\s+/g,'').replace('-', ''); }
+        function applyFilter() {
+          const value = select ? select.value : 'all';
+          rows.forEach(row => {
+            const catCell = row.cells[2];
+            const cat = normalize(catCell ? catCell.textContent : '');
+            row.style.display = (value === 'all' || cat.includes(value)) ? '' : 'none';
+          });
+        }
+        if (select) { select.addEventListener('change', applyFilter); }
+        applyFilter();
+
+        // Product details modal for viewing only
+        (function() {
+          const productDetailsOverlay = document.createElement('div');
+          productDetailsOverlay.className = 'overlay';
+          productDetailsOverlay.style.cssText = 'display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); backdrop-filter:blur(2px); align-items:center; justify-content:center; z-index:1000;';
+          
+          productDetailsOverlay.innerHTML = `
+            <div class="modal" style="width:500px; max-width:95vw; background:#262626; border:1px solid #333; border-radius:12px; padding:30px; box-shadow:0 20px 60px rgba(0,0,0,.5);">
+              <button type="button" class="close-modal" style="position:absolute; top:8px; right:10px; width:32px; height:32px; border-radius:6px; border:1px solid #3a3a3a; background:#1f2223; color:#e7e7e7; cursor:pointer;">×</button>
+              <h2 style="color:#e7e7e7; margin-bottom:20px;">Product Details</h2>
+              <div id="productDetailsContent" style="color:#e7e7e7;"></div>
+              <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+                <button type="button" class="close-modal" style="padding:10px 20px; background:#3a3a3a; color:#e7e7e7; border:none; border-radius:6px; cursor:pointer;">Close</button>
+              </div>
+            </div>`;
+            
+          document.body.appendChild(productDetailsOverlay);
+          
+          function closeProductDetails() {
+            productDetailsOverlay.style.display = 'none';
+          }
+          
+          productDetailsOverlay.addEventListener('click', (e) => {
+            if (e.target === productDetailsOverlay || e.target.classList.contains('close-modal')) {
+              closeProductDetails();
+            }
+          });
+          
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+              closeProductDetails();
+            }
+          });
+          
+          window.showProductDetails = function(product) {
+            const content = document.getElementById('productDetailsContent');
+            content.innerHTML = `
+              <div style="margin-bottom:15px; text-align:center;">
+                <img src="${product.image_url || '../img/rectangle-10.png'}" alt="${product.name}" style="width:100%; max-width:200px; height:150px; object-fit:cover; border-radius:8px; margin-bottom:10px;">
+              </div>
+              <div style="margin-bottom:10px;"><strong>Name:</strong> ${product.name}</div>
+              <div style="margin-bottom:10px;"><strong>Category:</strong> ${product.category || '—'}</div>
+              <div style="margin-bottom:10px;"><strong>Price:</strong> ₱${Number(product.price || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+              <div style="margin-bottom:10px;"><strong>Stock:</strong> ${product.stock || 0} units</div>
+              <div style="margin-bottom:10px;"><strong>Description:</strong> ${product.description || 'No description available'}</div>
+            `;
+            productDetailsOverlay.style.display = 'flex';
+          };
+        })();
+
+        // Load products with click functionality
+        async function loadProducts() {
+          const tbody = document.getElementById('productTableBody');
+          tbody.innerHTML = '<tr><td colspan="5" style="color:#a3a3a3; padding:12px">Loading products...</td></tr>';
+
+          try {
+            const res = await fetch('api/products.php');
+            const data = await res.json();
+            const list = (res.ok && data.ok) ? (data.data||[]) : [];
+
+            if (!list.length) {
+              tbody.innerHTML = '<tr><td colspan="5" style="color:#a3a3a3; padding:12px">No products found.</td></tr>';
+              return;
+            }
+
+            const fmt = (n) => '₱' + Number(n||0).toLocaleString('en-PH');
+            
+            tbody.innerHTML = list.map(p => {
+              const badgeClass = (p.stock<=5) ? 'critical-stock' : (p.stock<=15) ? 'low-stock' : 'normal-stock';
+              const badgeText = (p.stock<=5) ? 'Critical' : (p.stock<=15) ? 'Low' : 'Normal';
+              return `
+                <tr data-product-id="${p.id}" style="cursor:pointer;">
+                  <td><img class="thumb" src="${p.image_url ? p.image_url : '../img/rectangle-10.png'}" alt="${p.name}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;"></td>
+                  <td>${p.name}</td>
+                  <td>${p.category || '—'}</td>
+                  <td>${fmt(p.price)}</td>
+                  <td><span class="stock-count">${p.stock||0}</span><span class="stock-badge ${badgeClass}">${badgeText}</span></td>
+                </tr>`;
+            }).join('');
+
+            // Add click handlers for rows
+            tbody.querySelectorAll('tr[data-product-id]').forEach(row => {
+              row.addEventListener('click', () => {
+                const productId = row.dataset.productId;
+                const product = list.find(p => p.id == productId);
+                if (product) {
+                  showProductDetails(product);
+                }
+              });
+            });
+
+            // Update category filter
+            const categories = [...new Set(list.map(p => p.category).filter(Boolean))];
+            const categoryFilter = document.getElementById('categoryFilter');
+            categoryFilter.innerHTML = '<option value="all">All Categories</option>';
+            categories.forEach(cat => {
+              categoryFilter.innerHTML += `<option value="${cat.toLowerCase()}">${cat}</option>`;
+            });
+
+            // Re-apply filter
+            applyFilter();
+          } catch (err) {
+            tbody.innerHTML = '<tr><td colspan="5" style="color:#a3a3a3; padding:12px">Unable to load products.</td></tr>';
+          }
+        }
+
+        // Initialize
+        loadProducts();
+      </script>
+  </body>
+</html>

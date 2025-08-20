@@ -1,0 +1,750 @@
+/* Modern settings page layout aligned with shared sidebar pages */
+.settings-page { padding: 24px 32px; display: flex; flex-direction: column; gap: 16px; }
+.page-title { font-size: 22px; font-weight: 700; }
+
+.card { background: #262626; border: 1px solid #333; border-radius: 12px; padding: 16px; }
+.card + .card { margin-top: 4px; }
+.card-title { font-weight: 700; margin-bottom: 12px; }
+
+.row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid #2f2f2f; }
+.row:first-of-type { border-top: none; }
+.row .label { color: #d4d4d4; }
+
+/* Toggle */
+.toggle { position: relative; width: 46px; height: 24px; display: inline-block; }
+.toggle input { display: none; }
+.toggle .slider { position: absolute; inset: 0; background: #404040; border-radius: 9999px; transition: background .2s ease; }
+.toggle .slider:before { content: ""; position: absolute; width: 20px; height: 20px; left: 2px; top: 2px; background: #a3a3a3; border-radius: 50%; transition: transform .2s ease, background .2s ease; }
+.toggle input:checked + .slider { background: #525252; }
+.toggle input:checked + .slider:before { transform: translateX(22px); background: #f5f5f5; }
+
+/* Form */
+.settings-form { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { color: #d4d4d4; font-size: 14px; }
+.field input { height: 42px; background: #262626; border: 1px solid #404040; border-radius: 8px; padding: 0 12px; color: #f5f5f5; }
+.field input:focus { outline: 2px solid #4a90e2; outline-offset: 0; }
+.actions { display: flex; justify-content: flex-end; margin-top: 6px; }
+.btn.save { background: #404040; border: 1px solid #333; border-radius: 8px; color: #f5f5f5; padding: 10px 14px; cursor: pointer; }
+.btn.save:hover { background: #4a4a4a; }
+  
+/* Remove old absolute layout and legacy sidebar styles below */
+  
+  .settings-after-add .div {
+    height: 1440px;
+    background-color: #171717;
+    border: 0px none;
+  }
+  
+  .settings-after-add .overlap {
+    position: relative;
+    width: 1440px;
+    height: 1437px;
+  }
+  
+  .settings-after-add .main {
+    position: absolute;
+    width: 1440px;
+    height: 864px;
+    top: 0;
+    left: 0;
+    border: 0px none;
+  }
+  
+  .settings-after-add .div-wrapper {
+    position: relative;
+    width: 1280px;
+    height: 784px;
+    top: 80px;
+    left: 211px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .div-2 {
+    position: relative;
+    width: 896px;
+    height: 784px;
+    left: 192px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .text-wrapper {
+    position: absolute;
+    width: 94px;
+    top: 1px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #f5f5f5;
+    font-size: 24px;
+    letter-spacing: 0;
+    line-height: 24px;
+  }
+  
+  .settings-after-add .section {
+    position: absolute;
+    width: 896px;
+    height: 156px;
+    top: 64px;
+    left: 0;
+    background-color: #262626;
+    border-radius: 8px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .h {
+    position: absolute;
+    width: 848px;
+    height: 28px;
+    top: 24px;
+    left: 24px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .text-wrapper-2 {
+    position: absolute;
+    width: 185px;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #f5f5f5;
+    font-size: 20px;
+    letter-spacing: 0;
+    line-height: normal;
+    white-space: nowrap;
+  }
+  
+  .settings-after-add .div-3 {
+    position: absolute;
+    width: 848px;
+    height: 64px;
+    top: 68px;
+    left: 24px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .div-4 {
+    position: absolute;
+    width: 848px;
+    height: 24px;
+    top: 0;
+    left: 0;
+    border: 0px none;
+  }
+  
+  .settings-after-add .text-wrapper-3 {
+    position: absolute;
+    width: 83px;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #d4d4d4;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: 16px;
+  }
+  
+  .settings-after-add .div-5 {
+    position: absolute;
+    width: 48px;
+    height: 24px;
+    top: 0;
+    left: 800px;
+    background-color: #525252;
+    border-radius: 9999px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .div-6 {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    top: 2px;
+    left: 24px;
+    background-color: #f5f5f5;
+    border-radius: 9999px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .div-7 {
+    position: absolute;
+    width: 848px;
+    height: 24px;
+    top: 40px;
+    left: 0;
+    border: 0px none;
+  }
+  
+  .settings-after-add .text-wrapper-4 {
+    position: absolute;
+    width: 111px;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #d4d4d4;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: 16px;
+  }
+  
+  .settings-after-add .div-8 {
+    position: absolute;
+    width: 48px;
+    height: 24px;
+    top: 0;
+    left: 800px;
+    background-color: #404040;
+    border-radius: 9999px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .div-9 {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    top: 2px;
+    left: 4px;
+    background-color: #a3a3a3;
+    border-radius: 9999px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .section-2 {
+    position: absolute;
+    width: 896px;
+    height: 540px;
+    top: 244px;
+    left: 0;
+    background-color: #262626;
+    border-radius: 8px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .text-wrapper-5 {
+    position: absolute;
+    width: 163px;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #f5f5f5;
+    font-size: 20px;
+    letter-spacing: 0;
+    line-height: normal;
+    white-space: nowrap;
+  }
+  
+  .settings-after-add .form {
+    position: absolute;
+    width: 848px;
+    height: 432px;
+    top: 68px;
+    left: 24px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .div-10 {
+    position: absolute;
+    width: 848px;
+    height: 74px;
+    top: 0;
+    left: 0;
+    border: 0px none;
+  }
+  
+  .settings-after-add .text-wrapper-6 {
+    position: absolute;
+    width: 78px;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #d4d4d4;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .settings-after-add .input {
+    position: absolute;
+    width: 848px;
+    height: 42px;
+    top: 32px;
+    left: 0;
+    background-color: #404040;
+    border-radius: 6px;
+    border: 1px solid;
+    border-color: #525252;
+  }
+  
+  .settings-after-add .text-wrapper-7 {
+    position: absolute;
+    width: 47px;
+    top: 7px;
+    left: 16px;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #f5f5f5;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: 24px;
+  }
+  
+  .settings-after-add .div-11 {
+    position: absolute;
+    width: 848px;
+    height: 74px;
+    top: 98px;
+    left: 0;
+    border: 0px none;
+  }
+  
+  .settings-after-add .text-wrapper-8 {
+    position: absolute;
+    width: 136px;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #d4d4d4;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .settings-after-add .div-12 {
+    position: absolute;
+    width: 848px;
+    height: 74px;
+    top: 196px;
+    left: 0;
+    border: 0px none;
+  }
+  
+  .settings-after-add .text-wrapper-9 {
+    position: absolute;
+    width: 113px;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #d4d4d4;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .settings-after-add .div-13 {
+    position: absolute;
+    width: 848px;
+    height: 74px;
+    top: 294px;
+    left: 0;
+    border: 0px none;
+  }
+  
+  .settings-after-add .text-wrapper-10 {
+    position: absolute;
+    width: 178px;
+    top: 2px;
+    left: 0;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #d4d4d4;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .settings-after-add .button-wrapper {
+    position: absolute;
+    width: 848px;
+    height: 40px;
+    top: 392px;
+    left: 0;
+    border: 0px none;
+  }
+  
+  .settings-after-add .button {
+    all: unset;
+    box-sizing: border-box;
+    position: relative;
+    width: 157px;
+    height: 40px;
+    left: 691px;
+    background-color: #404040;
+    border-radius: 6px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .text-wrapper-11 {
+    position: absolute;
+    width: 109px;
+    top: 10px;
+    left: 24px;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #f5f5f5;
+    font-size: 16px;
+    text-align: center;
+    letter-spacing: 0;
+    line-height: normal;
+  }
+  
+  .settings-after-add .nav {
+    position: absolute;
+    width: 300px;
+    height: 1437px;
+    top: 0;
+    left: 0;
+    background-color: #262626;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+  }
+  
+  .settings-after-add .overlap-group {
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 701px;
+    left: 3px;
+    border-radius: 28px;
+  }
+  
+  .settings-after-add .rectangle {
+    position: absolute;
+    width: 297px;
+    height: 47px;
+    top: 0;
+    left: 1px;
+    background-color: #404040;
+  }
+  
+  .settings-after-add .settinga-btn {
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 0;
+    left: 0;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .settings-after-add .text-wrapper-12 {
+    position: absolute;
+    width: 231px;
+    top: 11px;
+    left: 113px;
+    font-family: "Inter-SemiBold", Helvetica;
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 20px;
+    letter-spacing: 4.00px;
+    line-height: normal;
+  }
+  
+  .settings-after-add .vector {
+    position: absolute;
+    width: 28px;
+    height: 22px;
+    top: 13px;
+    left: 63px;
+  }
+  
+  .settings-after-add .overlap-group-2 {
+    position: absolute;
+    width: 306px;
+    height: 205px;
+    top: 20px;
+    left: 39px;
+  }
+  
+  .settings-after-add .div-14 {
+    position: absolute;
+    width: 200px;
+    height: 28px;
+    top: 33px;
+    left: 106px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .screenshot {
+    position: absolute;
+    width: 221px;
+    height: 205px;
+    top: 0;
+    left: 0;
+    aspect-ratio: 1.08;
+    object-fit: cover;
+  }
+  
+  .settings-after-add .dash-btn {
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 299px;
+    left: 3px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .settings-after-add .group {
+    position: absolute;
+    width: 34px;
+    height: 27px;
+    top: 11px;
+    left: 56px;
+    background-image: url(./img/vector-5.svg);
+    background-size: 100% 100%;
+  }
+  
+  .settings-after-add .pos-btn {
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 433px;
+    left: 4px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .settings-after-add .frame {
+    position: absolute;
+    width: 28px;
+    height: 22px;
+    top: 12px;
+    left: 61px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .img {
+    position: absolute;
+    width: 26px;
+    height: 22px;
+    top: 0;
+    left: 2px;
+  }
+  
+  .settings-after-add .reports-btn {
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 634px;
+    left: 3px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .settings-after-add .vector-wrapper {
+    position: absolute;
+    width: 28px;
+    height: 22px;
+    top: 13px;
+    left: 62px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .vector-2 {
+    position: absolute;
+    width: 26px;
+    height: 22px;
+    top: 0;
+    left: 1px;
+  }
+  
+  .settings-after-add .logout-btn {
+    all: unset;
+    box-sizing: border-box;
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 974px;
+    left: 4px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .settings-after-add .frame-2 {
+    position: absolute;
+    width: 28px;
+    height: 22px;
+    top: 13px;
+    left: 60px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .vector-3 {
+    position: absolute;
+    width: 28px;
+    height: 19px;
+    top: 1px;
+    left: 0;
+  }
+  
+  .settings-after-add .customer-btn {
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 500px;
+    left: 3px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .settings-after-add .text-wrapper-13 {
+    position: absolute;
+    width: 231px;
+    top: 11px;
+    left: 113px;
+    font-family: "Inter-Bold", Helvetica;
+    font-weight: 700;
+    color: #ffffff;
+    font-size: 20px;
+    letter-spacing: 4.00px;
+    line-height: normal;
+  }
+  
+  .settings-after-add .vector-4 {
+    position: absolute;
+    width: 20px;
+    height: 16px;
+    top: 3px;
+    left: 4px;
+  }
+  
+  .settings-after-add .suppliers-btn {
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 567px;
+    left: 4px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .settings-after-add .i {
+    position: relative;
+    width: 20px;
+    height: 16px;
+    top: 3px;
+    left: 4px;
+    border: 0px none;
+  }
+  
+  .settings-after-add .svg {
+    display: flex;
+    width: 20px;
+    height: 16px;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  
+  .settings-after-add .frame-3 {
+    position: relative;
+    width: 20px;
+    height: 16px;
+    border: 0px none;
+    background-image: url(./img/vector.svg);
+    background-size: 100% 100%;
+  }
+  
+  .settings-after-add .inventory-btn {
+    position: absolute;
+    width: 315px;
+    height: 47px;
+    top: 366px;
+    left: 3px;
+    border-radius: 28px;
+    overflow: hidden;
+  }
+  
+  .settings-after-add .frame-4 {
+    position: absolute;
+    width: 28px;
+    height: 22px;
+    top: 12px;
+    left: 61px;
+    border: 0px none;
+    background-image: url(./img/vector-3.svg);
+    background-size: 100% 100%;
+  }
+  /* Original CSS code should be injected here */
+  
+  /* Additional styles for semantic HTML elements and accessibility */
+  .settings-after-add .input input {
+    all: unset;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    padding: 7px 16px;
+    font-family: "Inter-Regular", Helvetica;
+    font-weight: 400;
+    color: #f5f5f5;
+    font-size: 16px;
+    letter-spacing: 0;
+    line-height: 24px;
+    background: transparent;
+    border: none;
+  }
+  
+  .settings-after-add .input input:focus {
+    outline: 2px solid #4a90e2;
+    outline-offset: -2px;
+  }
+  
+  .settings-after-add .input input[readonly] {
+    cursor: default;
+  }
+  
+  .settings-after-add .div-5,
+  .settings-after-add .div-8 {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .settings-after-add .div-5:hover,
+  .settings-after-add .div-8:hover {
+    opacity: 0.8;
+  }
+  
+  .settings-after-add .div-5:focus,
+  .settings-after-add .div-8:focus {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+  }
+  
+  .settings-after-add .nav a {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+  }
+  
+  .settings-after-add .nav a:focus {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+  }
+  
+  .settings-after-add .button:hover {
+    background-color: #525252;
+    transition: background-color 0.2s ease;
+  }
+  
+  .settings-after-add .button:focus {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+  }
+  
+  .settings-after-add .logout-btn:hover {
+    background-color: rgba(64, 64, 64, 0.8);
+    transition: background-color 0.2s ease;
+  }
+  
+  .settings-after-add .logout-btn:focus {
+    outline: 2px solid #4a90e2;
+    outline-offset: 2px;
+  }
+  

@@ -1,0 +1,246 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  background: #111;
+  color: white;
+  /* Contain scrolling inside the app's main area */
+  overflow: hidden;
+}
+
+.container {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  height: 100vh;
+  min-width: 0; /* prevent child overflow from forcing horizontal scroll */
+}
+
+/* Sidebar */
+.sidebar {
+  background: #262626;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-right: 1px solid #2a2d2e;
+}
+
+.sidebar-top { display: flex; flex-direction: column; gap: 18px; }
+
+.brand { display: flex; align-items: center; justify-content: center; padding: 8px 0 4px; }
+.brand img { width: 140px; height: auto; object-fit: contain; filter: drop-shadow(0 0 0.5px #000); }
+
+.nav-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.nav a { 
+  color: #e7e7e7; text-decoration: none; display: flex; align-items: center; gap: 14px;
+  padding: 12px 14px; border-radius: 10px; font-weight: 600; letter-spacing: 0.6px;
+}
+.has-submenu { position: relative; }
+.submenu {
+  list-style: none;
+  margin: 6px 0 0 34px; /* indented under Inventory */
+  padding: 0; /* collapsed padding */
+  background: #1f1f1f;
+  border: 1px solid #333;
+  border-radius: 8px;
+  display: block; /* keep in flow so it pushes items below */
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  visibility: hidden;
+  pointer-events: none;
+  transition: max-height 220ms ease, opacity 180ms ease, transform 180ms ease, padding 180ms ease;
+}
+.submenu li a {
+  display: block;
+  padding: 8px 12px;
+  color: #e7e7e7;
+  font-weight: 600;
+  border-radius: 6px;
+}
+.submenu li a:hover { background: #262626; }
+.has-submenu:hover > .submenu {
+  max-height: 180px; /* enough for a few items */
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  pointer-events: auto;
+  padding: 6px 0; /* expanded padding */
+}
+.nav a .icon { width: 22px; text-align: center; opacity: 0.9; }
+.nav a .label { flex: 1; }
+.nav a:hover { background: #222526; }
+.nav a.active { background: #262b2d; box-shadow: inset 0 0 0 1px #333; }
+
+.logout { 
+  color: #e7e7e7; text-decoration: none; display: flex; align-items: center; gap: 14px; 
+  padding: 12px 14px; border-radius: 10px; font-weight: 700; letter-spacing: 0.6px; margin: 8px 0 4px;
+  background: #1f2223; border: 1px solid #2b2f30;
+}
+.logout:hover { background: #232729; }
+
+/* Main Content */
+.main {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  gap: 20px;
+  overflow-y: auto;   /* internal vertical scroll only */
+  overflow-x: hidden; /* no horizontal scrollbar */
+  min-width: 0;
+}
+
+/* Quick filters */
+.filters { display: flex; }
+.quick-filters { display: flex; gap: 8px; }
+.qf { background: #1f2223; color: #e7e7e7; border: 1px solid #2b2f30; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+.qf.active, .qf:hover { background: #232729; }
+
+/* KPI cards */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.kpi-card { background: #222; border: 1px solid #333; border-radius: 10px; padding: 14px; }
+.kpi-card .label { color: #bdbdbd; font-size: 12px; margin-bottom: 6px; }
+.kpi-card .value { font-size: 24px; font-weight: 700; }
+
+.card {
+  background: #222;
+  padding: 15px;
+  border-radius: 8px;
+  min-width: 0; /* prevent card from forcing horizontal scroll */
+}
+
+.charts-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.charts-grid .card { background: #222; border: 1px solid #333; border-radius: 10px; padding: 12px; }
+.charts-grid header { font-weight: 700; margin-bottom: 10px; }
+.charts-grid canvas { width: 100%; height: 200px; }
+
+.graph-placeholder {
+  background: #333;
+  height: 120px;
+  margin-top: 10px;
+  border-radius: 5px;
+  text-align: center;
+  line-height: 150px;
+  color: #888;
+}
+
+.top-products ul {
+  list-style: none;
+  padding: 0;
+  margin-top: 10px;
+}
+
+.top-products li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid #444;
+}
+
+/* ✅ Bottom section: Recent Transactions + Cards stacked */
+.lows-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.lows-grid .card { background: #222; border: 1px solid #333; border-radius: 10px; padding: 12px; }
+.lows-grid header { font-weight: 700; margin-bottom: 10px; }
+
+.misc-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.misc-grid .card { background: #222; border: 1px solid #333; border-radius: 10px; padding: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.misc-grid .big { font-size: 28px; font-weight: 800; }
+
+.i,
+.i-2,
+.i-3,
+.svg,
+.frame-wrapper,
+.img-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.frame,
+.img,
+.frame-2 {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
+/* Headline text */
+.h,
+.h-2 {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.text-wrapper,
+.text-wrapper-3,
+.text-wrapper-5 {
+  color: #fff;
+}
+
+/* Description text */
+.p,
+.p-2,
+.div-wrapper {
+  font-size: 0.85rem;
+  color: #ccc;
+}
+
+.text-wrapper-2,
+.text-wrapper-4,
+.text-wrapper-6 {
+  line-height: 1.4;
+}
+
+/* Optional: responsive stack on smaller screens */
+@media (max-width: 768px) {
+  .div {
+    flex-direction: column;
+  }
+}
+
+/* ✅ Legacy button block if needed */
+.actions {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 0;
+}
+
+.action-btn {
+  flex: 1;
+  background: #333;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  margin-top: 20px;
+  height: 100px;
+}
+
+.action-btn:hover {
+  background: #444;
+}
+
+/* Table styling */
+table {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th, td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #333;
+}

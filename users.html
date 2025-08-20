@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Users Management - Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="global.css">
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #111; color: #e7e7e7; }
+    header { background: #262626; color: #e7e7e7; padding: 1rem; border-bottom: 1px solid #333; }
+    .container { max-width: 1000px; margin: 1rem auto; padding: 0 1rem; }
+    table { width: 100%; border-collapse: collapse; background: #222; border-radius: 8px; overflow: hidden; border: 1px solid #333; }
+    th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #333; }
+    th { background: #262626; color: #e7e7e7; font-weight: 600; }
+    tr:last-child td { border-bottom: none; }
+    .btn { padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background-color 0.2s; }
+    .btn-primary { background: #3b82f6; color: #fff; margin-bottom: 1.5rem; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-secondary { background: #1f2223; color: #e7e7e7; border: 1px solid #2b2f30; }
+    .btn-secondary:hover { background: #232729; }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
+    .modal { display: none; position: fixed; z-index: 10; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,.7); }
+    .modal-content { background: #222; margin: 5% auto; padding: 2rem; border-radius: 8px; width: 400px; max-width: 90%; border: 1px solid #333; }
+    .modal-content h3 { margin-top: 0; color: #e7e7e7; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; margin-bottom: 0.25rem; font-weight: 600; color: #e7e7e7; }
+    .form-group input, .form-group select { width: 100%; padding: 0.5rem; background: #1f1f1f; color: #e7e7e7; border: 1px solid #333; border-radius: 4px; }
+    .form-group input:focus, .form-group select:focus { outline: 2px solid #3b82f6; }
+    .actions { display: flex; gap: 0.5rem; }
+    #usersTable tbody tr:hover { background: #262626; }
+  </style>
+</head>
+<body>
+<header style="display: flex; justify-content: space-between; align-items: center;">
+  <h1>Users Management</h1>
+  <div>
+    <span id="currentUser"></span> | <a href="#" class="logout">Logout</a>
+  </div>
+</header>
+<div class="container">
+  <button class="btn btn-primary" onclick="openAddModal()">+ Add Employee</button>
+  <table id="usersTable">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Username</th>
+        <th>Role</th>
+        <th>Phone</th>
+        <th>Employee ID</th>
+        <th>Active</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="userModal" class="modal">
+  <div class="modal-content">
+    <h3 id="modalTitle">Add Employee</h3>
+    <form id="userForm" onsubmit="saveUser(event)">
+      <input type="hidden" id="userId">
+      <div class="form-group">
+        <label>Name *</label>
+        <input id="name" required>
+      </div>
+      <div class="form-group">
+        <label>Full Name</label>
+        <input id="full_name">
+      </div>
+      <div class="form-group">
+        <label>Username *</label>
+        <input id="username" required>
+      </div>
+      <div class="form-group">
+        <label>Password *</label>
+        <input type="password" id="password" required>
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="role">
+          <option value="employee">Employee</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Phone</label>
+        <input id="phone" type="tel">
+      </div>
+      <div class="form-group">
+        <label>Employee ID</label>
+        <input id="employee_id">
+      </div>
+      <div class="form-group">
+        <label>Active</label>
+        <select id="active">
+          <option value="1">Yes</option>
+          <option value="0">No</option>
+        </select>
+      </div>
+      <div style="text-align:right;">
+        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div id="resetModal" class="modal">
+  <div class="modal-content">
+    <h3>Reset Password</h3>
+    <form id="resetForm" onsubmit="resetPassword(event)">
+      <input type="hidden" id="resetUserId">
+      <div class="form-group">
+        <label>New Password *</label>
+        <input type="password" id="newPassword" required minlength="4">
+      </div>
+      <div style="text-align:right;">
+        <button type="button" class="btn btn-secondary" onclick="closeResetModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Reset</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="global.js"></script>
+<script>
+(async () => {
+  await ensureAuth();
+  const user = await (await fetch('api/auth/me.php', { credentials: 'same-origin' })).json();
+  if (!user.ok || user.user.role !== 'admin') {
+    alert('Admin access required');
+    window.location.href = 'index.html';
+    return;
+  }
+  document.getElementById('currentUser').textContent = user.user.full_name || user.user.name;
+  loadUsers();
+})();
+
+function genEmpId(){
+  const now = new Date();
+  const ymd = now.toISOString().slice(0,10).replace(/-/g,'');
+  const rand = Math.floor(Math.random()*10000).toString().padStart(4,'0');
+  return `EMP-${ymd}-${rand}`;
+}
+
+async function loadUsers() {
+  const res = await fetch('api/users.php', { credentials: 'same-origin' });
+  const data = await res.json();
+  if (!data.ok) { alert(data.error || 'Failed to load users'); return; }
+  const tbody = document.querySelector('#usersTable tbody');
+  tbody.innerHTML = '';
+  data.users.forEach(u => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${u.name}</td>
+      <td>${u.username}</td>
+      <td>${u.role}</td>
+      <td>${u.phone || ''}</td>
+      <td>${u.employee_id || ''}</td>
+      <td>${u.active ? 'Yes' : 'No'}</td>
+      <td class="actions">
+        <button class="btn btn-secondary" onclick="editUser(${u.id})">Edit</button>
+        <button class="btn btn-secondary" onclick="resetUser(${u.id})">Reset</button>
+        <button class="btn ${u.active ? 'btn-danger' : 'btn-primary'}" onclick="toggleUser(${u.id}, ${u.active ? 0 : 1})">${u.active ? 'Deactivate' : 'Activate'}</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function openAddModal() {
+  document.getElementById('userForm').reset();
+  document.getElementById('userId').value = '';
+  document.getElementById('modalTitle').textContent = 'Add Employee';
+  document.getElementById('password').required = true;
+  const eid = document.getElementById('employee_id');
+  if (eid) eid.value = genEmpId();
+  document.getElementById('userModal').style.display = 'block';
+}
+
+function closeModal() {
+  document.getElementById('userModal').style.display = 'none';
+}
+
+function editUser(id) {
+  fetch('api/users.php', { credentials: 'same-origin' })
+    .then(r => r.json())
+    .then(data => {
+      const u = data.users.find(u => u.id === id);
+      document.getElementById('userId').value = u.id;
+      document.getElementById('name').value = u.name;
+      document.getElementById('full_name').value = u.full_name || '';
+      document.getElementById('username').value = u.username;
+      document.getElementById('role').value = u.role;
+      document.getElementById('phone').value = u.phone || '';
+      document.getElementById('employee_id').value = u.employee_id || genEmpId();
+      document.getElementById('active').value = u.active;
+      document.getElementById('password').required = false;
+      document.getElementById('modalTitle').textContent = 'Edit Employee';
+      document.getElementById('userModal').style.display = 'block';
+    });
+}
+
+async function saveUser(e) {
+  e.preventDefault();
+  const id = document.getElementById('userId').value;
+  const employeeInput = document.getElementById('employee_id');
+  if (employeeInput && !employeeInput.value.trim()) {
+    employeeInput.value = genEmpId();
+  }
+  const payload = {
+    id: id ? Number(id) : undefined,
+    name: document.getElementById('name').value,
+    full_name: document.getElementById('full_name').value,
+    username: document.getElementById('username').value,
+    password: document.getElementById('password').value,
+    role: document.getElementById('role').value,
+    phone: document.getElementById('phone').value,
+    employee_id: document.getElementById('employee_id').value,
+    active: Number(document.getElementById('active').value)
+  };
+  if (!payload.password && id) delete payload.password;
+  const method = id ? 'PUT' : 'POST';
+  try {
+    const res = await fetch('api/users.php', {
+      method,
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      closeModal();
+      loadUsers();
+      alert(id ? 'User updated successfully' : `User created. Employee ID: ${data.employee_id || payload.employee_id}`);
+    } else {
+      alert(data.error || 'Failed to save');
+    }
+  } catch (err) {
+    alert('Network error saving user');
+  }
+}
+
+function resetUser(id) {
+  document.getElementById('resetUserId').value = id;
+  document.getElementById('resetModal').style.display = 'block';
+}
+
+function closeResetModal() {
+  document.getElementById('resetModal').style.display = 'none';
+}
+
+async function resetPassword(e) {
+  e.preventDefault();
+  const id = document.getElementById('resetUserId').value;
+  const password = document.getElementById('newPassword').value;
+  const res = await fetch('api/users.php', {
+    method: 'PATCH',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: Number(id), password })
+  });
+  const data = await res.json();
+  if (data.ok) {
+    closeResetModal();
+    alert('Password reset successfully');
+  } else {
+    alert(data.error);
+  }
+}
+
+async function toggleUser(id, active) {
+  if (!confirm(active ? 'Activate user?' : 'Deactivate user?')) return;
+  const res = await fetch('api/users.php', {
+    method: 'PUT',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, active })
+  });
+  const data = await res.json();
+  if (data.ok) loadUsers();
+  else alert(data.error || 'Failed to update user');
+}
+
+window.onclick = (e) => {
+  if (e.target.classList.contains('modal')) {
+    e.target.style.display = 'none';
+  }
+};
+</script>
+</body>
+</html>

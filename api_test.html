@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 1200px; margin: 0 auto; }
+    h1, h2 { color: #333; }
+    .test-section { margin-bottom: 30px; border: 1px solid #ddd; padding: 20px; border-radius: 5px; }
+    pre { background: #f5f5f5; padding: 15px; border-radius: 5px; overflow: auto; max-height: 300px; }
+    button { padding: 10px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; }
+    .success { color: green; font-weight: bold; }
+    .error { color: red; font-weight: bold; }
+    .loading { color: #888; font-style: italic; }
+  </style>
+</head>
+<body>
+  <h1>API Test Page</h1>
+  <p>This page tests the API endpoints used by the dashboard and displays their raw responses.</p>
+  
+  <div class="test-section">
+    <h2>Transactions API</h2>
+    <button onclick="testAPI('transactions')">Test Transactions API</button>
+    <div id="transactions-result">
+      <p class="loading">Click the button to test...</p>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Stock Movements API</h2>
+    <button onclick="testAPI('stock')">Test Stock Movements API</button>
+    <div id="stock-result">
+      <p class="loading">Click the button to test...</p>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>Products API</h2>
+    <button onclick="testAPI('products')">Test Products API</button>
+    <div id="products-result">
+      <p class="loading">Click the button to test...</p>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>All APIs</h2>
+    <button onclick="testAllAPIs()">Test All APIs</button>
+    <p>This will test all APIs and display a summary of the results.</p>
+    <div id="all-result"></div>
+  </div>
+
+  <script>
+    async function testAPI(type) {
+      const resultDiv = document.getElementById(`${type}-result`);
+      resultDiv.innerHTML = '<p class="loading">Testing API...</p>';
+      
+      let url = '';
+      switch(type) {
+        case 'transactions':
+          url = './api/transactions.php';
+          break;
+        case 'stock':
+          url = './api/stock_in.php';
+          break;
+        case 'products':
+          url = './api/products.php';
+          break;
+        default:
+          resultDiv.innerHTML = '<p class="error">Invalid API type</p>';
+          return;
+      }
+      
+      try {
+        console.log(`Fetching ${url}...`);
+        const response = await fetch(url);
+        const contentType = response.headers.get('content-type');
+        
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          
+          let html = '';
+          if (response.ok) {
+            html += `<p class="success">✅ API response status: ${response.status}</p>`;
+            
+            if (data.ok) {
+              html += `<p class="success">✅ API returned success (ok: true)</p>`;
+              
+              if (data.data && Array.isArray(data.data)) {
+                html += `<p>Records returned: ${data.data.length}</p>`;
+                if (data.data.length === 0) {
+                  html += `<p class="error">⚠️ API returned empty data array</p>`;
+                }
+              }
+            } else {
+              html += `<p class="error">❌ API returned error (ok: false)</p>`;
+            }
+            
+            html += `<h3>Response Data:</h3>`;
+            html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+          } else {
+            html += `<p class="error">❌ API response status: ${response.status}</p>`;
+            html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+          }
+          
+          resultDiv.innerHTML = html;
+          return data;
+        } else {
+          const text = await response.text();
+          resultDiv.innerHTML = `
+            <p class="error">❌ API did not return JSON. Content-Type: ${contentType}</p>
+            <pre>${text}</pre>
+          `;
+          return null;
+        }
+      } catch (error) {
+        console.error(`Error testing ${type} API:`, error);
+        resultDiv.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
+        return null;
+      }
+    }
+
+    async function testAllAPIs() {
+      const resultDiv = document.getElementById('all-result');
+      resultDiv.innerHTML = '<p class="loading">Testing all APIs...</p>';
+      
+      try {
+        const txnsData = await testAPI('transactions');
+        const stockData = await testAPI('stock');
+        const productsData = await testAPI('products');
+        
+        let html = '<h3>Summary:</h3>';
+        
+        const hasTxns = txnsData && txnsData.ok && txnsData.data && txnsData.data.length > 0;
+        const hasStock = stockData && stockData.ok && stockData.data && stockData.data.length > 0;
+        const hasProducts = productsData && productsData.ok && productsData.data && productsData.data.length > 0;
+        
+        html += `<p>Transactions API: ${hasTxns ? `<span class="success">✅ ${txnsData.data.length} records</span>` : '<span class="error">❌ No data or error</span>'}</p>`;
+        html += `<p>Stock Movements API: ${hasStock ? `<span class="success">✅ ${stockData.data.length} records</span>` : '<span class="error">❌ No data or error</span>'}</p>`;
+        html += `<p>Products API: ${hasProducts ? `<span class="success">✅ ${productsData.data.length} records</span>` : '<span class="error">❌ No data or error</span>'}</p>`;
+        
+        if (hasTxns && hasStock && hasProducts) {
+          html += `<p class="success">✅ All APIs are returning data. The dashboard should be working correctly.</p>`;
+        } else {
+          html += `<p class="error">❌ One or more APIs are not returning data. This could be causing the dashboard to show no data.</p>`;
+        }
+        
+        resultDiv.innerHTML = html;
+      } catch (error) {
+        console.error('Error testing all APIs:', error);
+        resultDiv.innerHTML = `<p class="error">❌ Error: ${error.message}</p>`;
+      }
+    }
+  </script>
+</body>
+</html>

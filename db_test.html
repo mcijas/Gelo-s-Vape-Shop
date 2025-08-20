@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Database Test</title>
+</head>
+<body>
+    <h1>Database Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testDatabase() {
+            const results = document.getElementById('results');
+            
+            try {
+                // Test products endpoint
+                const productsRes = await fetch('./api/products.php');
+                const productsData = await productsRes.json();
+                
+                results.innerHTML += '<h2>Products Data:</h2>';
+                results.innerHTML += '<pre>' + JSON.stringify(productsData, null, 2) + '</pre>';
+                
+                if (productsData.ok && productsData.data) {
+                    results.innerHTML += '<h3>Product IDs:</h3>';
+                    productsData.data.forEach(product => {
+                        results.innerHTML += `<p>ID: ${product.id} (${typeof product.id}), Name: ${product.name}, Stock: ${product.stock}</p>`;
+                    });
+                }
+                
+                // Test stock movements endpoint
+                const stockRes = await fetch('./api/stock_in.php');
+                const stockData = await stockRes.json();
+                
+                results.innerHTML += '<h2>Stock Movements:</h2>';
+                results.innerHTML += '<pre>' + JSON.stringify(stockData, null, 2) + '</pre>';
+                
+            } catch (error) {
+                results.innerHTML += '<p>Error: ' + error.message + '</p>';
+            }
+        }
+        
+        testDatabase();
+    </script>
+</body>
+</html>

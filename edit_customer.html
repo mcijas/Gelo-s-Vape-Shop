@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>Edit Customer</title>
+    <link rel="stylesheet" href="global.css" />
+    <link rel="stylesheet" href="edit_customer.css" />
+  </head>
+  <body>
+    <main class="edit-customer">
+      <div class="overlap-group-wrapper">
+        <div class="overlap-group">
+          <header class="h">
+            <h1 class="text-wrapper">Edit Customer</h1>
+          </header>
+          <form class="form" novalidate>
+            <fieldset class="div">
+              <div class="div-2">
+                <div class="label">
+                  <label class="text-wrapper-2" for="input-1">Full Name</label>
+                </div>
+                <input
+                  class="input"
+                  placeholder="Enter customer name"
+                  type="text"
+                  id="input-1"
+                  name="fullName"
+                  required
+                  aria-describedby="fullname-error"
+                />
+              </div>
+              <div class="div-3">
+                <div class="label">
+                  <label class="text-wrapper-3" for="input-2">Email Address</label>
+                </div>
+                <input
+                  class="input"
+                  placeholder="Enter email address"
+                  type="email"
+                  id="input-2"
+                  name="email"
+                  required
+                  aria-describedby="email-error"
+                />
+              </div>
+              <div class="div-4">
+                <div class="label">
+                  <label class="text-wrapper-4" for="input-3">Phone Number</label>
+                </div>
+                <input
+                  class="input"
+                  placeholder="Enter phone number"
+                  type="tel"
+                  id="input-3"
+                  name="phone"
+                  required
+                  aria-describedby="phone-error"
+                />
+              </div>
+              <div class="status-wrapper">
+                <label class="status-label" for="status-select">Status</label>
+                <select class="status" id="status-select" name="status" aria-label="Customer Status">
+                  <option value="">Select status</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="pending">Pending</option>
+                </select>
+                <img class="vector" src="img/vector.svg" alt="" aria-hidden="true" />
+              </div>
+            </fieldset>
+            <div class="div-5">
+              <button class="button" type="submit">
+                <span class="text-wrapper-5">Save</span>
+              </button>
+              <button class="div-wrapper" type="button" onclick="parent.postMessage({ type: 'close-edit-customer' }, '*')">
+                <span class="text-wrapper-6">Cancel</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+    <script>
+      (function(){
+        const select = document.getElementById('status-select');
+        function applyColor(){
+          select.classList.remove('is-active','is-inactive','is-pending');
+          const v = (select && select.value) || '';
+          if (v === 'active') select.classList.add('is-active');
+          else if (v === 'inactive') select.classList.add('is-inactive');
+          else if (v === 'pending') select.classList.add('is-pending');
+        }
+        if (select){ select.addEventListener('change', applyColor); applyColor(); }
+      })();
+    </script>
+  </body>
+</html>

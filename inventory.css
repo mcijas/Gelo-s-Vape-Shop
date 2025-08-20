@@ -1,0 +1,202 @@
+/* RESET + BASE STYLES */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  background-color: #171717;
+  color: #f5f5f5;
+  overflow: hidden; /* Disable full-page scroll */
+}
+
+/* MAIN LAYOUT */
+.body { display: flex; height: 100vh; width: 100vw; }
+.container { display: grid; grid-template-columns: 260px 1fr; height: 100%; width: 100%; min-width: 0; }
+
+/* DASHBOARD-STYLE SIDEBAR */
+.sidebar { background: #262626; display: flex; flex-direction: column; justify-content: space-between; padding: 14px 16px; border-right: 1px solid #2a2d2e; }
+.sidebar-top { display: flex; flex-direction: column; gap: 18px; }
+.brand { display: flex; align-items: center; justify-content: center; padding: 8px 0 4px; }
+.brand img { width: 140px; height: auto; object-fit: contain; filter: drop-shadow(0 0 0.5px #000); }
+.nav-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.nav a { color: #e7e7e7; text-decoration: none; display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 10px; font-weight: 600; letter-spacing: 0.6px; }
+.has-submenu { position: relative; }
+.submenu { list-style: none; margin: 6px 0 0 34px; padding: 0; background: #1f1f1f; border: 1px solid #333; border-radius: 8px; display: block; max-height: 0; overflow: hidden; opacity: 0; transform: translateY(-4px); visibility: hidden; pointer-events: none; transition: max-height 220ms ease, opacity 180ms ease, transform 180ms ease, padding 180ms ease; }
+.submenu li a { display: block; padding: 8px 12px; color: #e7e7e7; font-weight: 600; font-size: 16px; border-radius: 6px; }
+.submenu li a:hover { background: #262626; }
+.has-submenu:hover > .submenu { max-height: 400px; opacity: 1; transform: translateY(0); visibility: visible; pointer-events: auto; padding: 6px 0; }
+.nav a .icon { width: 22px; text-align: center; opacity: 0.9; }
+.nav a .label { flex: 1; }
+.nav a:hover { background: #222526; }
+.nav a.active { background: #262b2d; box-shadow: inset 0 0 0 1px #333; }
+.logout { color: #e7e7e7; text-decoration: none; display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 10px; font-weight: 700; letter-spacing: 0.6px; margin: 8px 0 4px; background: #1f2223; border: 1px solid #2b2f30; }
+.logout:hover { background: #232729; }
+
+/* MAIN CONTENT */
+.main-content { padding: 20px 32px 32px; height: 100vh; overflow-y: auto; width: 100%; display: flex; flex-direction: column; min-width: 0; }
+
+/* PAGE TITLE */
+/* page-title removed */
+
+/* TOOLBAR */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 30px;
+}
+
+.category-select select {
+  width: 160px;
+  height: 40px;
+  background-color: #262626;
+  color: #ffffff;
+  border: 1px solid #404040;
+  border-radius: 8px;
+  padding: 0 12px;
+  appearance: none;
+  background-image: url("img/image.svg");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.search-bar {
+  display: flex;
+}
+
+.search-bar input {
+  width: 300px;
+  height: 42px;
+  background-color: #262626;
+  border: 1px solid #404040;
+  border-radius: 8px 0 0 8px;
+  padding: 0 16px;
+  color: #adaebc;
+  font-size: 16px;
+  outline: none;
+}
+
+.search-bar button {
+  width: 42px;
+  height: 42px;
+  background-color: #262626;
+  border: 1px solid #404040;
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  cursor: pointer;
+}
+
+/* ADD PRODUCT BUTTON */
+.add-product-btn {
+  margin-left: auto;
+  width: 148px;
+  height: 40px;
+  background-color: #404040;
+  border: none;
+  border-radius: 4px;
+  color: #f5f5f5;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.add-product-btn:hover {
+  background-color: #4a4a4a;
+  transform: translateY(-1px);
+}
+
+.add-stock-btn {
+  margin-left: 10px;
+  background: linear-gradient(135deg, #059669, #047857);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+  transition: all 0.3s ease;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-stock-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+}
+
+.add-product-btn .add::before,
+.add-stock-btn .add::before {
+  content: "+";
+  display: inline-block;
+  font-weight: 900;
+  margin-right: 8px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* GRID */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 30px;
+}
+
+/* PRODUCT CARD */
+.product-card { background-color: #262626; border-radius: 14px; padding: 14px; box-shadow: inset 0 0 0 1px #333; cursor: pointer; transition: all 0.3s ease; }
+.product-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3), inset 0 0 0 1px #059669; }
+.product-card:hover .product-name { color: #059669; }
+.product-image { width: 100%; height: 190px; object-fit: contain; background: #ffffff; border-radius: 10px; padding: 10px; }
+.product-name { font-size: 16px; font-weight: 600; margin: 12px 0 8px; transition: color 0.3s ease; }
+.product-category, .product-stock { color: #b1b1b1; font-size: 14px; margin-bottom: 6px; }
+.product-price { font-size: 16px; font-weight: 700; margin-top: 8px; }
+
+.product-image {
+  width: 100%;
+  height: 192px;
+  object-fit: cover;
+  border-radius: 5px;
+  margin-bottom: 15px;
+}
+
+.product-name {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.product-category,
+.product-stock {
+  color: #a3a3a3;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.product-price {
+  font-size: 16px;
+  font-weight: 500;
+  margin-top: 10px;
+}
+
+/* A11Y */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

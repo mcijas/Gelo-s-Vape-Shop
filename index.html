@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Login</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="login">
+      <div class="body">
+        <div class="div">
+          <div class="div-2">
+            <div class="div-3">
+              <div class="text-wrapper">Welcome back</div>
+              <p class="p">Enter your credentials to access your account</p>
+            </div>
+
+            <div class="form">
+              <!-- Username -->
+              <div class="div-4">
+                <div class="label">
+                  <label class="text-wrapper-2" for="input-1">Username</label>
+                </div>
+                <input class="input" placeholder="Enter your username" type="text" id="input-1" />
+              </div>
+
+              <!-- Password -->
+              <div class="div-5">
+                <div class="label">
+                  <label class="text-wrapper-3" for="input-2">Password</label>
+                </div>
+                <div class="overlap-group-wrapper">
+                  <div class="overlap-group">
+                    <input class="input" placeholder="Enter your password" type="password" id="input-2" />
+                    <div class="button" id="toggle-pass" title="Show/Hide Password">
+                      <div class="frame">
+                        <img class="img" src="svg/showpass.svg" alt="Show Password" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Remember + Forgot -->
+              <div class="div-6">
+                 <div class="text-wrapper-5">Forgot password?</div>
+                <div class="div-7" id="remember-container" role="checkbox" aria-checked="false" tabindex="0">
+                  <input type="checkbox" id="remember-me" style="display:none" />
+                  <div class="input-2" aria-hidden="true"></div>
+                  <div class="label-2">
+                     <div class="text-wrapper-6">Remember me</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sign in button -->
+              <button class="button-2" type="button">
+                <div class="text-wrapper-7">Sign in</div>
+              </button>
+            </div>
+
+            <!-- Logo/Image -->
+            <img class="screenshot" src="gelo.png" alt="Logo" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="global.js"></script>
+    <script src="signin.js"></script>
+  </body>
+</html>
