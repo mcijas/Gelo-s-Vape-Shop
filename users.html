@@ -35,9 +35,19 @@
 <header style="display: flex; justify-content: space-between; align-items: center;">
   <h1>Users Management</h1>
   <div>
-    <span id="currentUser"></span> | <a href="#" class="logout">Logout</a>
+    <span id="currentUser"></span> | <a href="index.html" class="logout">Logout</a>
   </div>
 </header>
+<nav class="top-nav" style="background:#1f1f1f;border-bottom:1px solid #333;padding:.5rem 1rem;">
+  <a href="Pages/dashboard.html">Dashboard</a> |
+  <a href="Pages/inventory.html">Inventory</a> |
+  <a href="Pages/pos.html">POS</a> |
+  <a href="customers.html">Customers</a> |
+  <a href="suppliers.html">Suppliers</a> |
+  <a href="reports.html">Reports</a> |
+  <a href="settings.html">Settings</a> |
+  <a href="users.html" style="font-weight:600;">Users</a>
+</nav>
 <div class="container">
   <button class="btn btn-primary" onclick="openAddModal()">+ Add Employee</button>
   <table id="usersTable">

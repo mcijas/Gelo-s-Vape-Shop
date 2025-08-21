@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const passInput = document.getElementById('input-2');
   const rememberContainer = document.getElementById('remember-container');
   const rememberCheckbox = document.getElementById('remember-me');
-  const togglePass = document.getElementById('toggle-pass');
+  // removed show/hide password feature toggle element reference
 
   async function doLogin() {
     const base = location.pathname.includes('/Pages/') ? '../' : '';
@@ -57,18 +57,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e.key === 'Enter') doLogin();
   });
 
-  // show/hide password toggle
-  if (togglePass && passInput) {
-    const toggle = () => {
-      const isPassword = passInput.getAttribute('type') === 'password';
-      passInput.setAttribute('type', isPassword ? 'text' : 'password');
-    };
-    togglePass.addEventListener('click', (e) => {
-      e.preventDefault();
-      toggle();
-    });
-  }
-
+  // show/hide password toggle removed
   // remember me widget behavior and prefill
   if (rememberContainer && rememberCheckbox) {
     const applyAria = () => {
@@ -94,15 +83,4 @@ document.addEventListener('DOMContentLoaded', function () {
     applyAria();
   }
 
-  // if already authenticated, redirect from login page
-  (async function maybeRedirectIfAuthed(){
-    try {
-      const base = location.pathname.includes('/Pages/') ? '../' : '';
-      const res = await fetch(base + 'api/auth/me.php', { credentials: 'same-origin' });
-      const data = await res.json();
-      if (data && data.ok) {
-        window.location.href = base + 'Pages/dashboard.html';
-      }
-    } catch (_) { /* ignore */ }
-  })();
 });

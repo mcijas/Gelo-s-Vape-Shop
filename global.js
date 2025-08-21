@@ -27,7 +27,16 @@
     document.querySelectorAll('a.logout').forEach(a => {
       a.addEventListener('click', async (e) => {
         e.preventDefault();
-        try { await fetch(base + 'api/auth/logout.php', { credentials: 'same-origin' }); } catch(_) {}
+        try {
+          await fetch(base + 'api/auth/logout.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: '',
+            credentials: 'same-origin',
+            keepalive: true,
+            cache: 'no-store'
+          });
+        } catch(_) {}
         sessionStorage.removeItem('userName');
         sessionStorage.removeItem('userRole');
         sessionStorage.removeItem('userPhone');
@@ -43,10 +52,16 @@
     document.querySelectorAll('[data-admin-only], .admin-only, .nav-users').forEach(el => {
       el.style.display = isAdmin ? '' : 'none';
     });
-    // Also toggle any static Users links that may already exist
+    // Also toggle any static Users links that may already exist; ensure they have icon+label markup
     document.querySelectorAll('a[href$="users.html"]').forEach(el => {
       el.style.display = isAdmin ? '' : 'none';
-      if (isAdmin) el.classList.add('nav-users');
+      if (isAdmin) {
+        el.classList.add('nav-users');
+        if (!el.querySelector('.icon')) {
+          const labelText = (el.textContent || '').trim() || 'Users';
+          el.innerHTML = '<span class="icon">👤</span><span class="label">' + labelText + '</span>';
+        }
+      }
     });
     ensureUsersLink(isAdmin);
   }
@@ -73,9 +88,9 @@
     const li = document.createElement('li');
     const a = document.createElement('a');
     a.href = base + 'users.html';
-    a.textContent = 'Users';
     a.setAttribute('data-users-link', 'true');
     a.className = 'nav-users';
+    a.innerHTML = '<span class="icon">👤</span><span class="label">Users</span>';
 
     // Insert after Settings if possible
     let settingsLink = ul.querySelector('a[href$="settings.html"]');
@@ -105,5 +120,4 @@
   window.getCurrentUserPhone = function(){ return sessionStorage.getItem('userPhone') || ''; };
   window.getCurrentEmployeeId = function(){ return sessionStorage.getItem('userEmployeeId') || ''; };
 })();
-
 

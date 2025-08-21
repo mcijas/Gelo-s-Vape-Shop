@@ -207,33 +207,38 @@ html, body {
 }
 
 /* 👁️ Icon toggle */
+/* removed: .login .button and #toggle-pass rules since toggle is removed */
 .login .button {
   position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
   width: 20px;
-  height: 18px;
-  top: 43px;
-  left: 352px;
+  height: 20px;
   border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
 
 /* Make the show/hide password icon clearly clickable and positioned inside the field */
 #toggle-pass {
   cursor: pointer;
   z-index: 5;
-  left: auto;
-  right: 10px;
-  top: 12px;
   pointer-events: auto;
 }
 
+/* Eye icon container (frame) */
 .login .frame {
-  position: relative;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 18px;
 }
+
 
 .login .img {
   position: relative;
