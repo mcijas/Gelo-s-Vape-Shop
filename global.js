@@ -96,9 +96,14 @@
       return item;
     }
 
-    // Ensure the two standard Settings submenu entries exist (both can point to settings.html or anchors if present)
-    ensureItem('Theme Preferences', 'settings.html#theme-preferences', 'Theme Preferences');
-    ensureItem('Account Settings', 'settings.html#account-settings', 'Account Settings');
+    // Remove any deprecated submenu items that are now part of the main Settings page
+    Array.from(submenu.querySelectorAll('a')).forEach(a=>{
+      const txt=(a.textContent||'').trim().toLowerCase();
+      if(txt==='theme preferences'||txt==='account settings'){
+        const li=a.closest('li');
+        if(li) li.remove();
+      }
+    });
 
     // Handle Users submenu entry (admin-only)
     // First, remove any existing Users submenu if not admin
