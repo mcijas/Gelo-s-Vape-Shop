@@ -7,7 +7,7 @@ require __DIR__ . '/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
   try {
-    $stmt = $pdo->query('SELECT id, date, code, product, category, type, qty, unit_price as unitCost, payment_method as paymentMethod, user_id FROM stock_movements ORDER BY date DESC LIMIT 1000');
+    $stmt = $pdo->query('SELECT id, date, code, product, supplier, category, type, qty, unit_price as unitCost, payment_method as paymentMethod, user_id FROM stock_movements ORDER BY date DESC LIMIT 1000');
     $movements = $stmt->fetchAll();
     
     // Format the response to match expected structure
@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         'date' => $movement['date'],
         'code' => $movement['code'],
         'product' => $movement['product'],
+        'supplier' => isset($movement['supplier']) ? $movement['supplier'] : null,
         'category' => $movement['category'],
         'type' => $movement['type'],
         'qty' => (int)$movement['qty'],

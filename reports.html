@@ -499,7 +499,7 @@
                 }
                 ws['!cols'] = colWidths;
                 
-                const safeSheetName = table.title.replace(/[:\\/?*[\]]/g, '_').substring(0, 31);
+                const safeSheetName = table.title.replace(/[:\\\/?*[\]]/g, '_').substring(0, 31);
                  XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
               });
               
@@ -633,6 +633,80 @@
               return (!s || d >= s) && (!e || d <= e);
             }
             function fmtPeso(n) { return '₱' + Number(n || 0).toLocaleString(); }
+
+            // Fetch suppliers list (for total supplier count)
+            async function getSuppliers() {
+              try {
+                const res = await fetch('api/suppliers.php', { method: 'GET' });
+                const data = await res.json();
+                if (res.ok && data.ok) return data.data || [];
+              } catch {}
+              try { return JSON.parse(localStorage.getItem('suppliers') || '[]'); } catch { return []; }
+            }
+
+            // Render supplier KPI cards: Total Suppliers, Active Suppliers, Total Spent
+            function renderSupplierCards(rows, suppliers) {
+              const totalEl = document.getElementById('totalSuppliers');
+              const activeEl = document.getElementById('activeSuppliers');
+              const spentEl = document.getElementById('totalSpentSuppliers');
+              if (!totalEl || !activeEl || !spentEl) return;
+
+              const nonArchivedSuppliers = (suppliers || []).filter(s => String((s.status || 'active')).toLowerCase() !== 'archived');
+              totalEl.textContent = String(nonArchivedSuppliers.length);
+
+              const activeSet = new Set();
+              let totalSpent = 0;
+              (rows || []).forEach(r => {
+                if (r.type !== 'IN') return;
+                const name = (r.supplier || '').trim();
+                if (name) activeSet.add(name);
+                const qty = parseInt(r.qty) || 0;
+                const unit = parseFloat(r.unitCost) || 0;
+                totalSpent += qty * unit;
+              });
+
+              activeEl.textContent = String(activeSet.size);
+              spentEl.textContent = fmtPeso(totalSpent);
+            }
+
+            // Render Supplier Performance table
+            function renderSupplierPerformance(rows, startISO, endISO) {
+              const body = document.getElementById('supplierPerformance');
+              if (!body) return;
+
+              const bySup = {};
+              (rows || []).forEach(r => {
+                if (r.type !== 'IN') return;
+                const sup = (r.supplier || '—').trim() || '—';
+                const cat = r.category || '—';
+                bySup[sup] = bySup[sup] || { orders: 0, spent: 0, cats: new Set() };
+                bySup[sup].orders += 1;
+                bySup[sup].spent += (parseInt(r.qty) || 0) * (parseFloat(r.unitCost) || 0);
+                bySup[sup].cats.add(cat);
+              });
+
+              const sups = Object.keys(bySup);
+              if (!sups.length) { body.innerHTML = '<tr><td colspan="5">No data</td></tr>'; return; }
+
+              const daysInRange = (startISO && endISO) ? Math.max(1, Math.round((new Date(`${endISO}T23:59:59.999`) - new Date(`${startISO}T00:00:00`)) / (24*60*60*1000)) + 0) : null;
+              body.innerHTML = sups.map(s => {
+                const orders = bySup[s].orders;
+                const spent = bySup[s].spent;
+                const aov = orders ? (spent / orders) : 0;
+                const freq = daysInRange ? `${(orders / daysInRange).toFixed(2)} /day` : String(orders);
+                const cats = Array.from(bySup[s].cats).join(', ') || '—';
+                const rating = '—'; // No quality rating data captured yet
+                return `
+                  <tr>
+                    <td>${s}</td>
+                    <td>${cats}</td>
+                    <td>${fmtPeso(aov)}</td>
+                    <td>${freq}</td>
+                    <td>${rating}</td>
+                  </tr>
+                `;
+              }).join('');
+            }
 
             function renderStockMovement(rows) {
               const body = document.getElementById('stockMovement');
@@ -769,6 +843,10 @@
               renderInventoryValuation(rows);
               renderSpendingBySupplier(rows);
               renderSpendingByCategory(rows);
+
+              const suppliers = await getSuppliers();
+              renderSupplierCards(rows, suppliers);
+              renderSupplierPerformance(rows, from?.value, to?.value);
 
               const txns = (await getTransactions()).filter(t => inRange(t.date, from?.value, to?.value)).sort((a, b) => new Date(b.date) - new Date(a.date));
               renderSalesSections(txns);

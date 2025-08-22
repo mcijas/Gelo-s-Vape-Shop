@@ -11,6 +11,7 @@ try {
     date DATETIME NOT NULL,
     code VARCHAR(40),
     product VARCHAR(255),
+    supplier VARCHAR(255),
     category VARCHAR(80),
     type ENUM('IN','OUT') NOT NULL,
     qty INT NOT NULL,
@@ -27,8 +28,9 @@ try {
     image_url VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )");
-  // Ensure user_id column exists on legacy tables
+  // Ensure columns exist on legacy tables
   try { $pdo->exec("ALTER TABLE stock_movements ADD COLUMN IF NOT EXISTS user_id INT DEFAULT NULL"); } catch (Throwable $__) {}
+  try { $pdo->exec("ALTER TABLE stock_movements ADD COLUMN IF NOT EXISTS supplier VARCHAR(255)"); } catch (Throwable $__) {}
 } catch (Throwable $e) {
   http_response_code(500);
   echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
@@ -37,7 +39,7 @@ try {
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
   try {
-    $stmt = $pdo->query('SELECT id, date, code, product, category, type, qty, unit_price as unitCost, payment_method as paymentMethod, user_id FROM stock_movements ORDER BY date DESC LIMIT 1000');
+    $stmt = $pdo->query('SELECT id, date, code, product, supplier, category, type, qty, unit_price as unitCost, payment_method as paymentMethod, user_id FROM stock_movements ORDER BY date DESC LIMIT 1000');
     echo json_encode(['ok'=>true, 'data'=>$stmt->fetchAll()]);
   } catch (Throwable $e) {
     http_response_code(500);
@@ -59,7 +61,7 @@ if (!empty($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'applic
 }
 
 $date = isset($input['date']) ? date('Y-m-d', strtotime($input['date'])) . ' 00:00:00' : date('Y-m-d H:i:s');
-$supplier = trim($input['supplier'] ?? ''); // not stored yet, but can be added when suppliers table exists
+$supplier = trim($input['supplier'] ?? '');
 $product = trim($input['product'] ?? '');
 $category = trim($input['category'] ?? '');
 $qty = (int)($input['qty'] ?? 0);
@@ -68,7 +70,7 @@ $userId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : null;
 
 if ($product === '' || $qty <= 0) { http_response_code(400); echo json_encode(['ok'=>false,'error'=>'Product and positive qty required']); exit; }
 
-error_log("Stock IN request: product=$product, category=$category, qty=$qty, unitCost=$unitCost");
+error_log("Stock IN request: product=$product, category=$category, qty=$qty, unitCost=$unitCost, supplier=$supplier");
 
 try {
   $pdo->beginTransaction();
@@ -88,9 +90,9 @@ try {
     $productId = (int)$pdo->lastInsertId();
   }
 
-  // Record IN movement (explicitly specify payment_method as NULL for IN) and attach user
-  $mv = $pdo->prepare('INSERT INTO stock_movements (date, code, product, category, type, qty, unit_price, payment_method, user_id) VALUES (?, ?, ?, ?, "IN", ?, ?, NULL, ?)');
-  $mv->execute([$date, $productId, $product, $category, $qty, $unitCost, $userId]);
+  // Record IN movement and attach user + supplier
+  $mv = $pdo->prepare('INSERT INTO stock_movements (date, code, product, supplier, category, type, qty, unit_price, payment_method, user_id) VALUES (?, ?, ?, ?, ?, "IN", ?, ?, NULL, ?)');
+  $mv->execute([$date, $productId, $product, $supplier, $category, $qty, $unitCost, $userId]);
 
   error_log("Stock IN movement recorded successfully for product=$product");
 

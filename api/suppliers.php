@@ -22,13 +22,42 @@ try {
   exit;
 }
 
+// Ensure columns exist on legacy tables (ignore errors if they already exist)
+try { $pdo->exec("ALTER TABLE suppliers ADD COLUMN categories TEXT DEFAULT NULL"); } catch (Throwable $__) {}
+try { $pdo->exec("ALTER TABLE suppliers ADD COLUMN status ENUM('active','deleted') DEFAULT 'active'"); } catch (Throwable $__) {}
+try { $pdo->exec("ALTER TABLE suppliers ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"); } catch (Throwable $__) {}
+try { $pdo->exec("ALTER TABLE suppliers ADD COLUMN email VARCHAR(255) DEFAULT NULL"); } catch (Throwable $__) {}
+try { $pdo->exec("ALTER TABLE suppliers ADD COLUMN phone VARCHAR(100) DEFAULT NULL"); } catch (Throwable $__) {}
+try { $pdo->exec("ALTER TABLE suppliers ADD COLUMN address TEXT DEFAULT NULL"); } catch (Throwable $__) {}
+try { $pdo->exec("ALTER TABLE suppliers ADD COLUMN notes TEXT DEFAULT NULL"); } catch (Throwable $__) {}
+
+// Extra safety: ensure missing columns exist at runtime (covers legacy DBs without migrations)
+if (!function_exists('ensureColumnExists')) {
+  function ensureColumnExists(PDO $pdo, string $table, string $column, string $definition) {
+    try {
+      $stmt = $pdo->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
+      $stmt->execute([$column]);
+      if ($stmt->rowCount() === 0) {
+        $pdo->exec("ALTER TABLE `$table` ADD COLUMN $column $definition");
+      }
+    } catch (Throwable $__){ /* ignore; handled later by SQL errors */ }
+  }
+}
+ensureColumnExists($pdo, 'suppliers', 'email', 'VARCHAR(255) DEFAULT NULL');
+ensureColumnExists($pdo, 'suppliers', 'phone', 'VARCHAR(100) DEFAULT NULL');
+ensureColumnExists($pdo, 'suppliers', 'address', 'TEXT DEFAULT NULL');
+ensureColumnExists($pdo, 'suppliers', 'categories', 'TEXT DEFAULT NULL');
+ensureColumnExists($pdo, 'suppliers', 'notes', 'TEXT DEFAULT NULL');
+ensureColumnExists($pdo, 'suppliers', 'status', "ENUM('active','deleted') DEFAULT 'active'");
+ensureColumnExists($pdo, 'suppliers', 'created_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
   $status = isset($_GET['status']) ? $_GET['status'] : 'active';
   if ($status !== 'active' && $status !== 'deleted') $status = 'active';
   try {
-    $stmt = $pdo->prepare("SELECT id, name, email, phone, address, categories, notes, status FROM suppliers WHERE status = ? ORDER BY name");
+    $stmt = $pdo->prepare("SELECT id, name, email, phone, address, categories, notes, status, created_at FROM suppliers WHERE status = ? ORDER BY name");
     $stmt->execute([$status]);
     $rows = $stmt->fetchAll();
     // Attempt to decode categories JSON to array when possible

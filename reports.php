@@ -720,6 +720,81 @@ try {
               `).join('');
             }
 
+            // Supplier helpers
+            async function getSuppliers() {
+              try {
+                const res = await fetch('api/suppliers.php', { method: 'GET' });
+                const data = await res.json();
+                if (res.ok && data.ok) return data.data || [];
+              } catch {}
+              try { return JSON.parse(localStorage.getItem('suppliers') || '[]'); } catch { return []; }
+            }
+
+            function renderSupplierCards(rows, suppliers) {
+              const totalSupEl = document.getElementById('totalSuppliers');
+              const activeSupEl = document.getElementById('activeSuppliers');
+              const totalSpentEl = document.getElementById('totalSpentSuppliers');
+
+              if (totalSupEl) totalSupEl.textContent = String((suppliers || []).length);
+
+              const active = new Set();
+              let spent = 0;
+              (rows || []).forEach(r => {
+                if (r.type !== 'IN') return;
+                if (r.supplier) active.add(r.supplier);
+                const qty = parseFloat(r.qty) || 0;
+                const unit = parseFloat(r.unitCost) || 0;
+                spent += qty * unit;
+              });
+
+              if (activeSupEl) activeSupEl.textContent = String(active.size);
+              if (totalSpentEl) totalSpentEl.textContent = fmtPeso(spent);
+            }
+
+            function renderSupplierPerformance(rows) {
+              const body = document.getElementById('supplierPerformance');
+              if (!body) return;
+              const bySup = {};
+              (rows || []).forEach(r => {
+                if (r.type !== 'IN') return;
+                const s = r.supplier || '—';
+                const d = new Date(r.date);
+                const qty = parseFloat(r.qty) || 0;
+                const unit = parseFloat(r.unitCost) || 0;
+                bySup[s] = bySup[s] || { cats: new Set(), dates: [], orders: 0, spent: 0 };
+                bySup[s].cats.add(r.category || '—');
+                bySup[s].dates.push(d);
+                bySup[s].orders += 1;
+                bySup[s].spent += qty * unit;
+              });
+              const sups = Object.keys(bySup);
+              if (!sups.length) { body.innerHTML = '<tr><td colspan="5">No data</td></tr>'; return; }
+              body.innerHTML = sups.map(s => {
+                const rec = bySup[s];
+                const orders = rec.orders;
+                const spent = rec.spent;
+                const aov = orders ? spent / orders : 0;
+                let freqText = '—';
+                if (rec.dates.length) {
+                  const minD = new Date(Math.min(...rec.dates));
+                  const maxD = new Date(Math.max(...rec.dates));
+                  const days = Math.max(1, Math.ceil((maxD - minD) / (1000 * 60 * 60 * 24)) + 1);
+                  const perWeek = orders / (days / 7);
+                  freqText = `${perWeek.toFixed(2)} / wk`;
+                }
+                const cats = Array.from(rec.cats).join(', ') || '—';
+                return `
+                  <tr>
+                    <td>${s}</td>
+                    <td>${cats}</td>
+                    <td>${fmtPeso(aov)}</td>
+                    <td>${freqText}</td>
+                    <td>—</td>
+                  </tr>
+                `;
+              }).join('');
+            }
+
             function renderSalesSections(rowsTx) {
               const rev = rowsTx.reduce((s,t)=>s+(parseFloat(t.total)||0),0);
               const count = rowsTx.length;
@@ -779,11 +854,14 @@ try {
             }
 
             async function renderAll() {
-              const rows = (await getStockMovements()).filter(r => inRange(r.date, from?.value, to?.value)).sort((a, b) => new Date(b.date) - new Date(a.date));
+              const [allRows, suppliers] = await Promise.all([getStockMovements(), getSuppliers()]);
+              const rows = (allRows || []).filter(r => inRange(r.date, from?.value, to?.value)).sort((a, b) => new Date(b.date) - new Date(a.date));
               renderStockMovement(rows);
               renderInventoryValuation(rows);
               renderSpendingBySupplier(rows);
               renderSpendingByCategory(rows);
+              renderSupplierCards(rows, suppliers || []);
+              renderSupplierPerformance(rows);
 
               const txns = (await getTransactions()).filter(t => inRange(t.date, from?.value, to?.value)).sort((a, b) => new Date(b.date) - new Date(a.date));
               renderSalesSections(txns);

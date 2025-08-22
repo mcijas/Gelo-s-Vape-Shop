@@ -48,61 +48,72 @@
 
   function applyRoleUI(role){
     const isAdmin = role === 'admin';
-    // toggle generic admin-only elements
+    // Remove any legacy standalone Users nav item
+    document.querySelectorAll('#usersNav').forEach(el => el.remove());
+
+    // toggle generic admin-only elements (fallback)
     document.querySelectorAll('[data-admin-only], .admin-only, .nav-users').forEach(el => {
       el.style.display = isAdmin ? '' : 'none';
     });
-    // Also toggle any static Users links that may already exist; ensure they have icon+label markup
-    document.querySelectorAll('a[href$="users.html"]').forEach(el => {
-      el.style.display = isAdmin ? '' : 'none';
-      if (isAdmin) {
-        el.classList.add('nav-users');
-        if (!el.querySelector('.icon')) {
-          const labelText = (el.textContent || '').trim() || 'Users';
-          el.innerHTML = '<span class="icon">👤</span><span class="label">' + labelText + '</span>';
-        }
-      }
-    });
-    ensureUsersLink(isAdmin);
+
+    // Build Settings submenu and place Users under it
+    ensureUsersUnderSettings(isAdmin);
   }
 
-  function ensureUsersLink(isAdmin){
-    const existing = document.querySelector('[data-users-link], a#navUsers, a.nav-users[href$="users.html"]');
+  function ensureUsersUnderSettings(isAdmin){
+    // Find the Settings <a>
+    let settingsLink = document.querySelector('a[href$="settings.html"]');
+    if (!settingsLink) {
+      settingsLink = Array.from(document.querySelectorAll('a')).find(x => (x.textContent || '').trim().toLowerCase() === 'settings');
+    }
+    if (!settingsLink) return;
+
+    // Ensure we reference the proper LI
+    const li = settingsLink.closest('li') || settingsLink.parentElement;
+    if (!li) return;
+    li.classList.add('has-submenu');
+
+    // Ensure submenu UL exists
+    let submenu = li.querySelector('ul.submenu');
+    if (!submenu) {
+      submenu = document.createElement('ul');
+      submenu.className = 'submenu';
+      li.appendChild(submenu);
+    }
+
+    // Helper to ensure a submenu item exists
+    function ensureItem(selectorText, href, label, attrs = {}){
+      let item = Array.from(submenu.querySelectorAll('a')).find(a => a.textContent.trim() === selectorText || a.getAttribute('href') === href);
+      if (!item) {
+        const liItem = document.createElement('li');
+        item = document.createElement('a');
+        item.href = base + href;
+        item.textContent = label;
+        Object.entries(attrs).forEach(([k,v])=> item.setAttribute(k,v));
+        liItem.appendChild(item);
+        submenu.appendChild(liItem);
+      }
+      return item;
+    }
+
+    // Ensure the two standard Settings submenu entries exist (both can point to settings.html or anchors if present)
+    ensureItem('Theme Preferences', 'settings.html#theme-preferences', 'Theme Preferences');
+    ensureItem('Account Settings', 'settings.html#account-settings', 'Account Settings');
+
+    // Handle Users submenu entry (admin-only)
+    // First, remove any existing Users submenu if not admin
     if (!isAdmin) {
-      // remove if exists for non-admin
-      document.querySelectorAll('[data-users-link], a#navUsers, a.nav-users[href$="users.html"]').forEach(el => el.remove());
+      Array.from(submenu.querySelectorAll('a')).forEach(a => {
+        if ((a.textContent || '').trim().toLowerCase() === 'users' || /users\.html$/i.test(a.getAttribute('href') || '')) {
+          const li = a.closest('li');
+          if (li) li.remove();
+        }
+      });
       return;
     }
-    if (existing) return;
-    // Try to find a sidebar/nav list to append to
-    const candidates = [
-      document.querySelector('.sidebar ul'),
-      document.querySelector('aside ul'),
-      document.querySelector('nav ul'),
-      document.querySelector('.menu ul'),
-      document.querySelector('ul.sidebar-menu')
-    ].filter(Boolean);
-    if (candidates.length === 0) return;
-    const ul = candidates[0];
-
-    const li = document.createElement('li');
-    const a = document.createElement('a');
-    a.href = base + 'users.html';
-    a.setAttribute('data-users-link', 'true');
-    a.className = 'nav-users';
-    a.innerHTML = '<span class="icon">👤</span><span class="label">Users</span>';
-
-    // Insert after Settings if possible
-    let settingsLink = ul.querySelector('a[href$="settings.html"]');
-    if (!settingsLink) {
-      settingsLink = Array.from(ul.querySelectorAll('a')).find(x => x.textContent.trim().toLowerCase() === 'settings');
-    }
-    if (settingsLink && settingsLink.parentElement && settingsLink.parentElement.tagName === 'LI') {
-      settingsLink.parentElement.insertAdjacentElement('afterend', li);
-    } else {
-      ul.appendChild(li);
-    }
-    li.appendChild(a);
+    // Ensure Users item exists for admin
+    const usersLink = ensureItem('Users', 'users.html', 'Users', { 'data-users-link': 'true' });
+    usersLink.classList.add('nav-users');
   }
 
   document.addEventListener('DOMContentLoaded', () => {
