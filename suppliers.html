@@ -300,6 +300,19 @@
         color: #a3a3a3;
       }
       
+      /* Log Delivery modal: large layout */
+      #logDeliveryModal { overflow-y: auto; padding: 24px; }
+      #logDeliveryModal .modal-content {
+        width: 80vw; max-width: 80vw; height: 80vh; max-height: 80vh;
+        overflow: visible; display: flex; flex-direction: column;
+      }
+      #logDeliveryModal .form-row.two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      #ldProductsSection { flex: 1 1 auto; display: flex; flex-direction: column; }
+      #ldProductTable { flex: 1 1 auto; }
+      @media (max-width: 900px) {
+        #logDeliveryModal .modal-content { width: 95vw; height: 90vh; }
+        #logDeliveryModal .form-row.two-cols { grid-template-columns: 1fr; }
+      }
       .archive-item-categories {
         margin-bottom: 12px;
       }
@@ -446,39 +459,35 @@
           <button class="close-btn" onclick="closeModal('logDeliveryModal')">&times;</button>
         </div>
 
-        <div class="form-group">
-          <label>Supplier</label>
-          <select id="ldSupplier"></select>
+        <div class="form-row two-cols">
+          <div class="form-group">
+            <label>Supplier</label>
+            <select id="ldSupplier"></select>
+          </div>
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" id="ldDate" />
+          </div>
         </div>
 
-        <div class="form-group">
-          <label>Product</label>
-          <input type="text" id="ldProduct" placeholder="Product name" />
-        </div>
-
-        <div class="form-group">
-          <label>Category</label>
-          <select id="ldCategory">
-            <option value="Units">Units</option>
-            <option value="Disposable">Disposable</option>
-            <option value="E-juice">E-juice</option>
-            <option value="Hardware">Hardware</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Quantity</label>
-          <input type="number" id="ldQty" min="1" value="1" />
-        </div>
-
-        <div class="form-group">
-          <label>Unit Cost (₱)</label>
-          <input type="number" id="ldUnitCost" min="0" step="0.01" value="0" />
-        </div>
-
-        <div class="form-group">
-          <label>Date</label>
-          <input type="date" id="ldDate" />
+        <div class="form-group" id="ldProductsSection">
+          <label>Products</label>
+          <div>
+            <table id="ldProductTable" style="width:100%; border-collapse:collapse; background:#1f1f1f; border-radius:6px; overflow:hidden;">
+              <thead>
+                <tr style="background:#2a2a2a; text-align:left;">
+                  <th style="padding:8px; font-weight:600;">Product Name</th>
+                  <th style="padding:8px; font-weight:600; width:160px;">Category</th>
+                  <th style="padding:8px; font-weight:600; width:120px;">Quantity</th>
+                  <th style="padding:8px; font-weight:600; width:140px;">Unit Cost (₱)</th>
+                  <th style="padding:8px; font-weight:600; width:110px;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="ldProductsBody"></tbody>
+            </table>
+            <button type="button" class="btn btn-secondary" id="ldAddProductBtn" style="margin-top:10px;">+ Add Product</button>
+            <div id="ldSummary" style="margin-top:10px; color:#a3a3a3; font-size:14px;">Total items: <span id="ldTotalItems">0</span> • Total cost: ₱<span id="ldTotalCost">0.00</span></div>
+          </div>
         </div>
 
         <div class="modal-actions">
@@ -717,6 +726,16 @@
            }
            const d = document.getElementById('ldDate');
            if (d) d.valueAsDate = new Date();
+
+           // Initialize product rows and summary
+           const tbody = document.getElementById('ldProductsBody');
+           if (tbody) tbody.innerHTML = '';
+           addProductRow();
+           updateDeliverySummary();
+
+           const addBtn = document.getElementById('ldAddProductBtn');
+           if (addBtn) addBtn.onclick = () => { addProductRow(); };
+
            openModal('logDeliveryModal');
          });
          loadSuppliers();
@@ -763,38 +782,124 @@
 
       async function saveDelivery() {
         const supplier = (document.getElementById('ldSupplier')?.value || '').trim();
-        const product = (document.getElementById('ldProduct')?.value || '').trim();
-        const category = (document.getElementById('ldCategory')?.value || '').trim();
-        const qty = Number(document.getElementById('ldQty')?.value || 0);
-        const unitCost = Number(document.getElementById('ldUnitCost')?.value || 0);
         const date = document.getElementById('ldDate')?.value;
-
-        if (!supplier || !product || !category || !qty || !date) {
-          alert('Please fill in supplier, product, category, quantity, and date.');
+        if (!supplier || !date) {
+          alert('Please select supplier and date.');
           return;
         }
 
+        const items = collectDeliveryRows();
+
+        // Validate
+        let valid = true;
+        items.forEach(it => {
+          it._nameEl?.style && (it._nameEl.style.outline = 'none');
+          it._qtyEl?.style && (it._qtyEl.style.outline = 'none');
+          if (!it.product || it.product.trim() === '') {
+            valid = false; if (it._nameEl?.style) it._nameEl.style.outline = '2px solid #dc2626';
+          }
+          if (!it.qty || Number(it.qty) <= 0) {
+            valid = false; if (it._qtyEl?.style) it._qtyEl.style.outline = '2px solid #dc2626';
+          }
+        });
+        if (!items.length) { alert('Add at least one product.'); return; }
+        if (!valid) { alert('Please fix errors: product name cannot be empty and quantity must be greater than 0.'); return; }
+
+        const saveBtn = document.querySelector('#logDeliveryModal .btn.btn-primary');
+        const originalText = saveBtn ? saveBtn.textContent : '';
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+
         try {
-          // Save to DB
-          const res = await fetch('api/stock_in.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'same-origin',
-            body: JSON.stringify({ supplier, product, category, qty, unitCost, date })
-          });
-          const data = await res.json();
-          if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to save');
+          // Save each product to DB (sequential for reliability)
+          for (const it of items) {
+            const res = await fetch('api/stock_in.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify({ supplier, product: it.product.trim(), category: it.category, qty: Number(it.qty), unitCost: Number(it.unitCost || 0), date })
+            });
+            const data = await res.json().catch(()=>({ ok:false, error:'Invalid server response' }));
+            if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to save some items');
+          }
 
           // Mirror to localStorage for reports/dashboard
           const entries = getStockMovements();
-          entries.push({ id: Date.now(), type: 'IN', date, supplier, product, category, qty, unitCost });
+          items.forEach(it => {
+            entries.push({ id: Date.now() + Math.random(), type: 'IN', date, supplier, product: it.product.trim(), category: it.category, qty: Number(it.qty), unitCost: Number(it.unitCost || 0) });
+          });
           setStockMovements(entries);
 
           closeModal('logDeliveryModal');
-          alert('Delivery logged and saved to database.');
+          alert(`Delivery logged for ${items.length} product(s).`);
         } catch (e) {
           alert('Server error: ' + (e?.message || e));
+        } finally {
+          if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = originalText; }
         }
+      }
+
+      function addProductRow(prefill = {}) {
+        const tbody = document.getElementById('ldProductsBody');
+        if (!tbody) return;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="padding:6px;">
+            <input type="text" class="ldProductName" placeholder="Product name" value="${(prefill.product||'').replace(/"/g,'&quot;')}" style="width:100%; padding:8px; border-radius:6px; border:1px solid #3a3a3a; background:#1a1a1a; color:#e5e5e5;" />
+          </td>
+          <td style="padding:6px;">
+            <select class="ldCategory" style="width:100%; padding:8px; border-radius:6px; border:1px solid #3a3a3a; background:#1a1a1a; color:#e5e5e5;">
+              <option value="Units">Units</option>
+              <option value="Packs">Packs</option>
+              <option value="Bottles">Bottles</option>
+              <option value="Disposable">Disposable</option>
+              <option value="E-juice">E-juice</option>
+              <option value="Hardware">Hardware</option>
+              <option value="Other">Other</option>
+            </select>
+          </td>
+          <td style="padding:6px;">
+            <input type="number" min="1" class="ldQty" value="${Number(prefill.qty||1)}" style="width:100%; padding:8px; border-radius:6px; border:1px solid #3a3a3a; background:#1a1a1a; color:#e5e5e5;" />
+          </td>
+          <td style="padding:6px;">
+            <input type="number" min="0" step="0.01" class="ldUnitCost" value="${Number(prefill.unitCost||0)}" style="width:100%; padding:8px; border-radius:6px; border:1px solid #3a3a3a; background:#1a1a1a; color:#e5e5e5;" />
+          </td>
+          <td style="padding:6px; text-align:center;">
+            <button type="button" class="btn btn-secondary ldRemoveRow">Remove</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+        // Set category if provided
+        const catSel = tr.querySelector('.ldCategory');
+        if (prefill.category) { catSel.value = prefill.category; }
+        const nameEl = tr.querySelector('.ldProductName');
+        const qtyEl = tr.querySelector('.ldQty');
+        const costEl = tr.querySelector('.ldUnitCost');
+        [nameEl, qtyEl, costEl, catSel].forEach(el => el && el.addEventListener('input', updateDeliverySummary));
+        const removeBtn = tr.querySelector('.ldRemoveRow');
+        if (removeBtn) removeBtn.onclick = () => { tr.remove(); if (!document.querySelector('#ldProductsBody tr')) addProductRow(); updateDeliverySummary(); };
+        updateDeliverySummary();
+      }
+
+      function collectDeliveryRows() {
+        const rows = Array.from(document.querySelectorAll('#ldProductsBody tr'));
+        return rows.map(tr => ({
+          product: tr.querySelector('.ldProductName')?.value || '',
+          category: tr.querySelector('.ldCategory')?.value || 'Units',
+          qty: Number(tr.querySelector('.ldQty')?.value || 0),
+          unitCost: Number(tr.querySelector('.ldUnitCost')?.value || 0),
+          _nameEl: tr.querySelector('.ldProductName'),
+          _qtyEl: tr.querySelector('.ldQty'),
+        }));
+      }
+
+      function updateDeliverySummary() {
+        const items = collectDeliveryRows();
+        let totalItems = 0; let totalCost = 0;
+        items.forEach(it => { const q = Number(it.qty||0); const c = Number(it.unitCost||0); totalItems += isNaN(q)?0:q; totalCost += (isNaN(q)||isNaN(c))?0:(q*c); });
+        const itemsEl = document.getElementById('ldTotalItems');
+        const costEl = document.getElementById('ldTotalCost');
+        if (itemsEl) itemsEl.textContent = String(totalItems);
+        if (costEl) costEl.textContent = (Math.round(totalCost*100)/100).toFixed(2);
       }
 
        // Modal functions
