@@ -853,6 +853,69 @@ try {
               }).join('') : '<tr><td colspan="4">No data</td></tr>';
             }
 
+            // Operational Reports: fetchers and renderers
+            async function getShifts() {
+              try {
+                const res = await fetch('api/shifts.php');
+                const data = await res.json();
+                if (res.ok && data.ok) return data.data || [];
+              } catch (_) {}
+              return [];
+            }
+            async function getVoids() {
+              try {
+                const res = await fetch('api/void_transaction.php');
+                const data = await res.json();
+                if (res.ok && data.ok) return data.data || [];
+              } catch (_) {}
+              return [];
+            }
+            async function getStaffHours() {
+              try {
+                const res = await fetch('api/staff_hours.php');
+                const data = await res.json();
+                if (res.ok && data.ok) return data.data || [];
+              } catch (_) {}
+              return [];
+            }
+            function renderShiftReports(shifts) {
+              const body = document.getElementById('shiftReports');
+              if (!body) return;
+              if (!shifts || !shifts.length) { body.innerHTML = '<tr><td colspan="3">No data</td></tr>'; return; }
+              body.innerHTML = shifts.map(s => {
+                const start = new Date(s.started_at);
+                const end = s.ended_at ? new Date(s.ended_at) : null;
+                const durMin = s.duration_minutes || (end ? Math.round((end - start) / 60000) : 0);
+                const durTxt = durMin ? (durMin >= 60 ? `${Math.floor(durMin/60)}h ${durMin%60}m` : `${durMin}m`) : (s.status==='open'?'(open)':'');
+                const shiftText = `${s.employee_name} • ${start.toLocaleString()}${end? ' - '+end.toLocaleString(): ''} ${durTxt?` (${durTxt})`:''}`;
+                const cashText = `Open ${fmtPeso(parseFloat(s.opening_cash||0))} → ${s.closing_cash!==null ? 'Close '+fmtPeso(parseFloat(s.closing_cash||0)) + (s.variance!==null?` (Var ${fmtPeso(parseFloat(s.variance||0))})`: '') : '—'}`;
+                const salesText = fmtPeso(parseFloat(s.sales_total||0));
+                return `<tr><td>${shiftText}</td><td>${cashText}</td><td>${salesText}</td></tr>`;
+              }).join('');
+            }
+            function renderVoids(voids) {
+              const body = document.getElementById('voids');
+              if (!body) return;
+              const rows = (voids || []);
+              if (!rows.length) { body.innerHTML = '<tr><td colspan="4">No data</td></tr>'; return; }
+              body.innerHTML = rows.map(v => `<tr><td>${new Date(v.voided_at).toLocaleString()}</td><td>${v.transaction_id}</td><td>${v.employee_name}</td><td>${(v.reason||'').replace(/</g,'&lt;')}</td></tr>`).join('');
+            }
+            function renderStaffHours(records) {
+              const body = document.getElementById('staffHours');
+              if (!body) return;
+              if (!records || !records.length) { body.innerHTML = '<tr><td colspan="3">No data</td></tr>'; return; }
+              const byEmp = {};
+              records.forEach(r => {
+                const name = r.employee_name || '—';
+                const minutes = r.total_minutes || (r.clock_in ? Math.round(((r.clock_out? new Date(r.clock_out): new Date()) - new Date(r.clock_in))/60000) : 0) || 0;
+                if (!byEmp[name]) byEmp[name] = { minutes: 0, shifts: 0 };
+                byEmp[name].minutes += minutes;
+                byEmp[name].shifts += 1;
+              });
+              const emps = Object.keys(byEmp);
+              body.innerHTML = emps.length ? emps.map(n => `<tr><td>${n}</td><td>${(byEmp[n].minutes/60).toFixed(2)}</td><td>${byEmp[n].shifts}</td></tr>`).join('') : '<tr><td colspan="3">No data</td></tr>';
+            }
+
             async function renderAll() {
               const [allRows, suppliers] = await Promise.all([getStockMovements(), getSuppliers()]);
               const rows = (allRows || []).filter(r => inRange(r.date, from?.value, to?.value)).sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -865,6 +928,17 @@ try {
 
               const txns = (await getTransactions()).filter(t => inRange(t.date, from?.value, to?.value)).sort((a, b) => new Date(b.date) - new Date(a.date));
               renderSalesSections(txns);
+
+              // Operational
+              const [shifts, voids, hours] = await Promise.all([
+                getShifts(), getVoids(), getStaffHours()
+              ]);
+              const filtShifts = (shifts||[]).filter(s => inRange(s.started_at, from?.value, to?.value));
+              const filtVoids = (voids||[]).filter(v => inRange(v.voided_at, from?.value, to?.value));
+              const filtHours = (hours||[]).filter(h => inRange(h.clock_in, from?.value, to?.value));
+              renderShiftReports(filtShifts);
+              renderVoids(filtVoids);
+              renderStaffHours(filtHours);
             }
 
             // initial render

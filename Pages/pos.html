@@ -6,6 +6,37 @@
     <title>POS System - Gelo's Vape Shop</title>
     <link rel="stylesheet" href="../global.css" />
     <link rel="stylesheet" href="../pos.css" />
+    <style>
+      /* Operational Controls Buttons */
+      .ops-controls { gap: 8px; flex-wrap: wrap; }
+      .ops-button {
+        border: none;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-weight: 700;
+        color: #fff;
+        cursor: pointer;
+        transition: transform .12s ease, opacity .12s ease, box-shadow .12s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 38px;
+        user-select: none;
+      }
+      .ops-button:hover { transform: translateY(-1px) scale(1.02); opacity: .95; }
+      .ops-button:active { transform: scale(.98); opacity: .9; }
+      .ops-button.green { background: #16a34a; }
+      .ops-button.red { background: #dc2626; }
+      .ops-button.blue { background: #2563eb; }
+      .ops-button.purple { background: #7c3aed; }
+      .ops-button.orange { background: #f97316; }
+      @media (max-width: 600px) {
+        .ops-controls { gap: 6px !important; }
+        .ops-button { padding: 9px 12px; border-radius: 10px; }
+      }
+    </style>
   </head>
   <body>
     <div class="container">
@@ -27,12 +58,12 @@
               <li class="has-submenu">
                 <a href="../reports.php"><span class="icon">📊</span><span class="label">Reports</span></a>
                 <ul class="submenu">
-                  <li><a href="../reports.html#sales-reports">Sales Reports</a></li>
-                  <li><a href="../reports.html#inventory-reports">Inventory Reports</a></li>
-                  <li><a href="../reports.html#financial-reports">Financial Reports</a></li>
-                  <li><a href="../reports.html#supplier-reports">Supplier Reports</a></li>
-                  <li><a href="../reports.html#customer-reports">Customer Reports</a></li>
-                  <li><a href="../reports.html#operational-reports">Operational Reports</a></li>
+                  <li><a href="../reports.php#sales-reports">Sales Reports</a></li>
+                  <li><a href="../reports.php#inventory-reports">Inventory Reports</a></li>
+                  <li><a href="../reports.php#financial-reports">Financial Reports</a></li>
+                  <li><a href="../reports.php#supplier-reports">Supplier Reports</a></li>
+                  <li><a href="../reports.php#customer-reports">Customer Reports</a></li>
+                  <li><a href="../reports.php#operational-reports">Operational Reports</a></li>
                 </ul>
               </li>
               <li><a href="../settings.html"><span class="icon">⚙️</span><span class="label">Settings</span></a></li>
@@ -61,6 +92,13 @@
             <button type="button" id="refreshStockBtn" aria-label="Refresh stock from database" title="Refresh stock levels">
               🔄 Refresh Stock
             </button>
+          </div>
+          <div class="ops-controls" style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap">
+            <button type="button" id="startShiftBtn" class="ops-button green" title="Start Shift">🟢 Start Shift</button>
+            <button type="button" id="endShiftBtn" class="ops-button red" title="End Shift">🔴 End Shift</button>
+            <button type="button" id="clockInBtn" class="ops-button blue" title="Clock In">🕒 Clock In</button>
+            <button type="button" id="clockOutBtn" class="ops-button purple" title="Clock Out">🕘 Clock Out</button>
+            <button type="button" id="voidTxnBtn" class="ops-button orange" title="Void Transaction">✖️ Void Txn</button>
           </div>
         </div>
 
@@ -374,6 +412,126 @@
           }, 3000);
         }
 
+        // Operational helpers
+        async function getOpenShift() {
+          try {
+            const res = await fetch('../api/shifts.php?status=open');
+            const data = await res.json();
+            if (res.ok && data.ok) return data.data || null;
+          } catch (_) {}
+          return null;
+        }
+        async function getOpenClock() {
+          try {
+            const res = await fetch('../api/staff_hours.php?status=open');
+            const data = await res.json();
+            if (res.ok && data.ok) return data.data || null;
+          } catch (_) {}
+          return null;
+        }
+        async function startShift() {
+          try {
+            const opening = prompt('Enter Opening Cash (₱):', '0');
+            if (opening === null) return;
+            const openingCash = parseFloat(opening || '0');
+            const res = await fetch('../api/shifts.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify({ opening_cash: isFinite(openingCash) ? openingCash : 0 })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to start shift');
+            const shiftId = data.id;
+            // Clock in and tie to shift
+            try {
+              const fd = new FormData();
+              if (shiftId) fd.append('shift_id', String(shiftId));
+              const r2 = await fetch('../api/staff_hours.php', { method: 'POST', body: fd, credentials: 'same-origin' });
+              const d2 = await r2.json();
+              if (!r2.ok || !d2.ok) throw new Error(d2.error || 'Clock-in failed');
+              showNotification('Shift started and clocked in successfully', 'success');
+            } catch (e) {
+              showNotification('Shift started, but clock-in failed: ' + (e?.message || e), 'warning');
+            }
+          } catch (e) {
+            showNotification('Failed to start shift: ' + (e?.message || e), 'error');
+          }
+        }
+        async function endShift() {
+          try {
+            const open = await getOpenShift();
+            if (!open || !open.id) { showNotification('No open shift found', 'warning'); return; }
+            const closing = prompt('Enter Closing Cash Count (₱):', String(open.opening_cash || '0'));
+            if (closing === null) return;
+            const closingCash = parseFloat(closing || '0');
+            const res = await fetch('../api/shifts.php', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify({ id: open.id, closing_cash: isFinite(closingCash) ? closingCash : 0 })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to end shift');
+            // Attempt clock-out
+            try {
+              const clk = await getOpenClock();
+              if (clk && clk.id) {
+                const r2 = await fetch('../api/staff_hours.php', { method: 'PATCH', headers: { 'Content-Type':'application/json' }, credentials: 'same-origin', body: JSON.stringify({ id: clk.id }) });
+                const d2 = await r2.json();
+                if (!r2.ok || !d2.ok) throw new Error(d2.error || 'Clock-out failed');
+              }
+            } catch (e) {
+              // non-fatal
+            }
+            showNotification('Shift ended successfully', 'success');
+          } catch (e) {
+            showNotification('Failed to end shift: ' + (e?.message || e), 'error');
+          }
+        }
+        async function clockIn() {
+          try {
+            // attach to open shift if exists
+            const open = await getOpenShift();
+            const fd = new FormData();
+            if (open && open.id) fd.append('shift_id', String(open.id));
+            const res = await fetch('../api/staff_hours.php', { method: 'POST', body: fd, credentials: 'same-origin' });
+            const data = await res.json();
+            if (!res.ok || !data.ok) throw new Error(data.error || 'Clock-in failed');
+            showNotification('Clocked in successfully', 'success');
+          } catch (e) {
+            showNotification('Failed to clock in: ' + (e?.message || e), 'error');
+          }
+        }
+        async function clockOut() {
+          try {
+            const open = await getOpenClock();
+            if (!open || !open.id) { showNotification('No active clock-in found', 'warning'); return; }
+            const res = await fetch('../api/staff_hours.php', { method: 'PATCH', headers: { 'Content-Type':'application/json' }, credentials: 'same-origin', body: JSON.stringify({ id: open.id }) });
+            const data = await res.json();
+            if (!res.ok || !data.ok) throw new Error(data.error || 'Clock-out failed');
+            showNotification('Clocked out successfully', 'success');
+          } catch (e) {
+            showNotification('Failed to clock out: ' + (e?.message || e), 'error');
+          }
+        }
+        async function voidTransaction() {
+          try {
+            const tidStr = prompt('Enter Transaction ID to void (numeric ID from receipt):');
+            if (tidStr === null) return;
+            const tid = parseInt(tidStr, 10);
+            if (!tid || tid <= 0) { showNotification('Invalid transaction ID', 'warning'); return; }
+            const reason = prompt('Reason for void/cancel:');
+            if (reason === null || String(reason).trim() === '') { showNotification('Void reason is required', 'warning'); return; }
+            const res = await fetch('../api/void_transaction.php', { method: 'POST', headers: { 'Content-Type':'application/json' }, credentials: 'same-origin', body: JSON.stringify({ transaction_id: tid, reason: String(reason).trim() }) });
+            const data = await res.json();
+            if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to void transaction');
+            showNotification(`Transaction ${tid} voided`, 'success');
+          } catch (e) {
+            showNotification('Void failed: ' + (e?.message || e), 'error');
+          }
+        }
+
         // Load products on page load
         loadProducts();
         
@@ -429,8 +587,8 @@
             });
             const data = await res.json();
             if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to save transaction');
-            // Print receipt using DB ref if available
-            const receiptTxn = { ...txn, id: data.ref || txn.id };
+            // Print receipt using DB id and ref from server
+            const receiptTxn = { ...txn, id: data.id || txn.id, ref: data.ref || txn.id };
             printReceipt(receiptTxn);
 
             // Mirror to localStorage to keep other pages (customers/reports) working
@@ -537,6 +695,18 @@
         if (refreshStockBtn) {
           refreshStockBtn.addEventListener('click', refreshProductsFromDB);
         }
+
+        // Operational control buttons — simple alert handlers
+        const startShiftBtnEl = document.getElementById('startShiftBtn');
+        if (startShiftBtnEl) startShiftBtnEl.addEventListener('click', startShift);
+        const endShiftBtnEl = document.getElementById('endShiftBtn');
+        if (endShiftBtnEl) endShiftBtnEl.addEventListener('click', endShift);
+        const clockInBtnEl = document.getElementById('clockInBtn');
+        if (clockInBtnEl) clockInBtnEl.addEventListener('click', clockIn);
+        const clockOutBtnEl = document.getElementById('clockOutBtn');
+        if (clockOutBtnEl) clockOutBtnEl.addEventListener('click', clockOut);
+        const voidTxnBtnEl = document.getElementById('voidTxnBtn');
+        if (voidTxnBtnEl) voidTxnBtnEl.addEventListener('click', voidTransaction);
 
         render();
       })();

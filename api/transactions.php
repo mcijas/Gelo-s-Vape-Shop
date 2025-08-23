@@ -16,6 +16,7 @@ try {
     cashier VARCHAR(150),
     payment_method VARCHAR(40),
     total DECIMAL(12,2) NOT NULL DEFAULT 0,
+    discount DECIMAL(12,2) NOT NULL DEFAULT 0,
     user_id INT DEFAULT NULL,
     FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
   )");
@@ -50,9 +51,10 @@ try {
     image_url VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )");
-  // Add user_id columns for existing tables if they don't exist (MySQL 8+)
-  try { $pdo->exec("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS user_id INT DEFAULT NULL"); } catch (Throwable $__) {}
-  try { $pdo->exec("ALTER TABLE stock_movements ADD COLUMN IF NOT EXISTS user_id INT DEFAULT NULL"); } catch (Throwable $__) {}
+  // Add user_id and discount columns for existing tables if they don't exist (MySQL 8+)
+  try { $pdo->exec("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS user_id INT DEFAULT NULL"); } catch (Throwable $__ ) {}
+  try { $pdo->exec("ALTER TABLE stock_movements ADD COLUMN IF NOT EXISTS user_id INT DEFAULT NULL"); } catch (Throwable $__ ) {}
+  try { $pdo->exec("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS discount DECIMAL(12,2) NOT NULL DEFAULT 0"); } catch (Throwable $__ ) {}
 } catch (Throwable $e) {
   http_response_code(500);
   echo json_encode(['ok' => false, 'error' => 'DB init failed: '.$e->getMessage()]);
@@ -63,7 +65,7 @@ try {
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
   header('Content-Type: application/json');
   try {
-    $txStmt = $pdo->query("SELECT t.id, t.ref, t.date, t.customer_name, t.customer_id, t.cashier, t.payment_method, t.total, c.name as customer FROM transactions t LEFT JOIN customers c ON t.customer_id = c.id ORDER BY t.date DESC LIMIT 1000");
+    $txStmt = $pdo->query("SELECT t.id, t.ref, t.date, t.customer_name, t.customer_id, t.cashier, t.payment_method, t.total, t.discount, c.name as customer FROM transactions t LEFT JOIN customers c ON t.customer_id = c.id ORDER BY t.date DESC LIMIT 1000");
     $txns = $txStmt->fetchAll();
     $itemsStmt = $pdo->query("SELECT transaction_id, code, product, category, qty, price FROM transaction_items");
     $items = $itemsStmt->fetchAll();
@@ -128,16 +130,22 @@ $customer = $input['customer'] ?? 'Walk-in';
 $cashier = $input['cashier'] ?? ($_SESSION['user']['name'] ?? 'Admin');
 $method = $input['paymentMethod'] ?? 'Cash';
 $total = (float)($input['total'] ?? 0);
+$discount = (float)($input['discount'] ?? 0);
 $items = $input['items'] ?? [];
 $userId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : null;
+
+// Ensure non-negative values
+if ($total < 0) { $total = 0; }
+if ($discount < 0) { $discount = 0; }
+$netTotal = max(0, $total - $discount);
 
 try {
   $pdo->beginTransaction();
 
   $customer_id = isset($input['customer_id']) && $input['customer_id'] > 0 ? (int)$input['customer_id'] : null;
-  $stmt = $pdo->prepare("INSERT INTO transactions (ref, date, customer_name, customer_id, cashier, payment_method, total, user_id)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-  $stmt->execute([$ref, $date, $customer, $customer_id, $cashier, $method, $total, $userId]);
+  $stmt = $pdo->prepare("INSERT INTO transactions (ref, date, customer_name, customer_id, cashier, payment_method, total, discount, user_id)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+  $stmt->execute([$ref, $date, $customer, $customer_id, $cashier, $method, $netTotal, $discount, $userId]);
   $txnId = (int)$pdo->lastInsertId();
 
   if (!empty($items)) {
