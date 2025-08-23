@@ -443,7 +443,8 @@ try {
             
             // Function to export as CSV
             function exportAsCSV(data, sectionTitle) {
-              let csvContent = '';
+              // Prepend UTF-8 BOM to ensure applications (Excel/LibreOffice) detect UTF-8 and render ₱ correctly
+              let csvContent = '\uFEFF';
               
               data.forEach(table => {
                 csvContent += table.title + '\n';
@@ -475,27 +476,19 @@ try {
                 const wsData = [table.headers, ...table.rows];
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
                 
-                // Add some styling
+                // Ensure peso symbol in cells remains as text and provide number format for currency columns
                 const range = XLSX.utils.decode_range(ws['!ref']);
                 for (let R = range.s.r; R <= range.e.r; ++R) {
                   for (let C = range.s.c; C <= range.e.c; ++C) {
                     const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
                     if (!cell) continue;
-                    
-                    // Style header row
                     if (R === 0) {
-                      cell.s = {
-                        font: { bold: true },
-                        fill: { fgColor: { rgb: "E2E8F0" } },
-                        alignment: { horizontal: "center" }
-                      };
+                      cell.s = { font: { bold: true }, fill: { fgColor: { rgb: "E2E8F0" } }, alignment: { horizontal: "center" } };
                     }
-                    
-                    // Style currency columns (assuming last column is currency)
-                    if (C === range.e.c && R > 0) {
-                      cell.s = cell.s || {};
-                      cell.s.numFmt = '"₱"#,##0.00';
-                      cell.s.alignment = { horizontal: "right" };
+                    // If the cell value looks like a currency string with ₱, keep as string to preserve symbol,
+                    // alternatively set a number format if you are writing numbers without symbol.
+                    if (cell.v && typeof cell.v === 'string' && cell.v.trim().startsWith('₱')) {
+                      cell.t = 's';
                     }
                   }
                 }
@@ -514,111 +507,75 @@ try {
                 }
                 ws['!cols'] = colWidths;
                 
-                const safeSheetName = table.title.replace(/[:\\/?*[\]]/g, '_').substring(0, 31);
-                 XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
+                const safeSheetName = table.title.replace(/[:\\\/?*[\]]/g, '_').substring(0, 31);
+                XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
               });
               
               const filename = `${sectionTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-             XLSX.writeFile(wb, filename);
-           }
+              XLSX.writeFile(wb, filename);
+            }
 
            // Function to export as PDF using jsPDF
            function exportAsPDF(data, sectionTitle) {
              const { jsPDF } = window.jspdf;
              const doc = new jsPDF();
              
-             // Set font and colors
+             // Use a built-in font that supports basic Unicode; ensure we write literal ₱ in strings
              doc.setFont('helvetica');
              
              let yPosition = 20;
              const pageWidth = doc.internal.pageSize.getWidth();
              
              data.forEach((table, tableIndex) => {
-               // Add table title
                doc.setFontSize(16);
                doc.setFont(undefined, 'bold');
                doc.setTextColor(41, 128, 185);
                doc.text(table.title, pageWidth / 2, yPosition, { align: 'center' });
                yPosition += 10;
                
-               // Add report section title
                doc.setFontSize(12);
                doc.setFont(undefined, 'normal');
                doc.setTextColor(100, 100, 100);
                doc.text(`Report: ${sectionTitle}`, pageWidth / 2, yPosition, { align: 'center' });
                yPosition += 10;
                
-               // Add date
                doc.setFontSize(10);
                doc.setTextColor(150, 150, 150);
                const today = new Date().toLocaleDateString();
-               doc.text(`Generated: ${today}`, pageWidth / 2, yPosition, { align: 'center' });
-               yPosition += 15;
+               doc.text(`Date: ${today}`, 14, yPosition);
+               yPosition += 6;
                
-               // Calculate column widths
-               const tableWidth = pageWidth - 20; // 10px margin on each side
-               const colCount = table.headers.length;
-               const colWidth = tableWidth / colCount;
-               
-               // Add headers
-               doc.setFontSize(10);
-               doc.setFont(undefined, 'bold');
-               doc.setTextColor(255, 255, 255);
-               doc.setFillColor(41, 128, 185);
-               
-               table.headers.forEach((header, index) => {
-                 const xPos = 10 + (index * colWidth);
-                 doc.rect(xPos, yPosition - 5, colWidth, 8, 'F');
-                 doc.text(header, xPos + 2, yPosition + 1);
+               // Table headers
+               doc.setFontSize(11);
+               doc.setTextColor(0,0,0);
+               let x = 14;
+               table.headers.forEach(h => {
+                 doc.text(String(h), x, yPosition);
+                 x += 60; // simplistic column width
                });
-               yPosition += 8;
+               yPosition += 6;
                
-               // Add data rows
-               doc.setFont(undefined, 'normal');
-               doc.setTextColor(50, 50, 50);
-               
-               table.rows.forEach((row, rowIndex) => {
-                 // Check if we need a new page
-                 if (yPosition > 280) {
+               // Rows
+               table.rows.forEach(row => {
+                 x = 14;
+                 row.forEach(cell => {
+                   // Ensure the peso symbol is written literally; jsPDF expects UTF-8 strings from the browser
+                   doc.text(String(cell), x, yPosition);
+                   x += 60;
+                 });
+                 yPosition += 6;
+                 if (yPosition > doc.internal.pageSize.getHeight() - 20) {
                    doc.addPage();
                    yPosition = 20;
                  }
-                 
-                 // Alternate row colors
-                 const fillColor = rowIndex % 2 === 0 ? [245, 245, 245] : [255, 255, 255];
-                 doc.setFillColor(...fillColor);
-                 
-                 row.forEach((cell, cellIndex) => {
-                   const xPos = 10 + (cellIndex * colWidth);
-                   doc.rect(xPos, yPosition - 4, colWidth, 6, 'F');
-                   
-                   // Handle currency formatting (assuming last column)
-                   let displayText = cell;
-                   if (cellIndex === row.length - 1 && cell.includes('₱')) {
-                     displayText = cell.replace('₱', 'Php ');
-                   }
-                   
-                   // Truncate text if too long
-                   if (displayText.length > 15) {
-                     displayText = displayText.substring(0, 12) + '...';
-                   }
-                   
-                   doc.text(displayText, xPos + 2, yPosition + 1);
-                 });
-                 yPosition += 6;
                });
                
-               yPosition += 10; // Space between tables
+               yPosition += 10;
+               if (yPosition > doc.internal.pageSize.getHeight() - 20 && tableIndex < data.length - 1) {
+                 doc.addPage();
+                 yPosition = 20;
+               }
              });
-             
-             // Add footer
-             const totalPages = doc.internal.getNumberOfPages();
-             for (let i = 1; i <= totalPages; i++) {
-               doc.setPage(i);
-               doc.setFontSize(8);
-               doc.setTextColor(150, 150, 150);
-               doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, 290, { align: 'center' });
-             }
              
              const filename = `${sectionTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
              doc.save(filename);
@@ -684,6 +641,49 @@ try {
                   <td>${fmtPeso(byCat[c].cost)}</td>
                 </tr>
               `).join('');
+            }
+
+            // New: products fetcher and stock level renderers
+            async function getProducts() {
+              try {
+                const res = await fetch('api/products.php', { method: 'GET' });
+                const data = await res.json();
+                if (res.ok && data.ok) return data.data || [];
+              } catch {}
+              try { return JSON.parse(localStorage.getItem('products') || '[]'); } catch { return []; }
+            }
+            function renderStockLevels(products) {
+              const body = document.getElementById('stockLevels');
+              if (!body) return;
+              const rows = (products || []).map(p => `
+                <tr>
+                  <td>${p.name}</td>
+                  <td>${Number(p.stock || 0)}</td>
+                  <td>${(p.reorder_point != null) ? Number(p.reorder_point) : '—'}</td>
+                </tr>
+              `);
+              body.innerHTML = rows.length ? rows.join('') : '<tr><td colspan="3">No data</td></tr>';
+            }
+            function renderLowStock(products) {
+              const body = document.getElementById('lowStock');
+              if (!body) return;
+              const items = (products || []).filter(p => {
+                const stock = Number(p.stock || 0);
+                const rp = (p.reorder_point != null) ? Number(p.reorder_point) : 0;
+                return rp > 0 && stock <= rp;
+              }).map(p => {
+                const stock = Number(p.stock || 0);
+                const rp = Number(p.reorder_point || 0);
+                const needed = Math.max(0, rp - stock);
+                return `
+                  <tr>
+                    <td>${p.name}</td>
+                    <td>${stock}</td>
+                    <td>${needed}</td>
+                  </tr>
+                `;
+              });
+              body.innerHTML = items.length ? items.join('') : '<tr><td colspan="3">No data</td></tr>';
             }
 
             function renderSpendingBySupplier(rows) {
@@ -917,10 +917,12 @@ try {
             }
 
             async function renderAll() {
-              const [allRows, suppliers] = await Promise.all([getStockMovements(), getSuppliers()]);
+              const [allRows, suppliers, products] = await Promise.all([getStockMovements(), getSuppliers(), getProducts()]);
               const rows = (allRows || []).filter(r => inRange(r.date, from?.value, to?.value)).sort((a, b) => new Date(b.date) - new Date(a.date));
               renderStockMovement(rows);
               renderInventoryValuation(rows);
+              renderStockLevels(products || []);
+              renderLowStock(products || []);
               renderSpendingBySupplier(rows);
               renderSpendingByCategory(rows);
               renderSupplierCards(rows, suppliers || []);

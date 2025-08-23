@@ -11,9 +11,12 @@ try {
     category VARCHAR(80) DEFAULT NULL,
     price DECIMAL(10,2) NOT NULL DEFAULT 0,
     stock INT NOT NULL DEFAULT 0,
+    reorder_point INT NOT NULL DEFAULT 0,
     image_url VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )");
+  // Ensure reorder_point exists on legacy tables
+  try { $pdo->exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS reorder_point INT NOT NULL DEFAULT 0"); } catch (Throwable $__) {}
 } catch (Throwable $e) {
   http_response_code(500);
   echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
@@ -45,7 +48,7 @@ if ($method === 'DELETE') {
 }
 
 if ($method === 'GET') {
-  $stmt = $pdo->query('SELECT id, name, category, price, stock, image_url FROM products ORDER BY name');
+  $stmt = $pdo->query('SELECT id, name, category, price, stock, reorder_point, image_url FROM products ORDER BY name');
   $products = $stmt->fetchAll();
   error_log("GET products: " . print_r($products, true));
   echo json_encode(['ok' => true, 'data' => $products]);
@@ -57,6 +60,7 @@ if ($method === 'POST') {
   $category = trim($_POST['category'] ?? '');
   $price = (float)($_POST['price'] ?? 0);
   $stock = (int)($_POST['stock'] ?? 0);
+  $reorder_point = isset($_POST['reorder_point']) ? (int)$_POST['reorder_point'] : 0;
   
   if ($name === '') { http_response_code(400); echo json_encode(['ok'=>false,'error'=>'Name required']); exit; }
   
@@ -95,8 +99,8 @@ if ($method === 'POST') {
   }
   
   try {
-    $stmt = $pdo->prepare('INSERT INTO products (name, category, price, stock, image_url) VALUES (?, ?, ?, ?, ?)');
-    $stmt->execute([$name, $category, $price, $stock, $image_url]);
+    $stmt = $pdo->prepare('INSERT INTO products (name, category, price, stock, image_url, reorder_point) VALUES (?, ?, ?, ?, ?, ?)');
+    $stmt->execute([$name, $category, $price, $stock, $image_url, $reorder_point]);
     echo json_encode(['ok' => true, 'id' => (int)$pdo->lastInsertId()]);
   } catch (Throwable $e) {
     http_response_code(500);
@@ -113,6 +117,7 @@ if ($method === 'PUT') {
   $category = trim($_POST['category'] ?? '');
   $price = (float)($_POST['price'] ?? 0);
   $stock = (int)($_POST['stock'] ?? 0);
+  $reorder_point = isset($_POST['reorder_point']) ? (int)$_POST['reorder_point'] : null;
   
   try {
     // Check if product exists
@@ -160,11 +165,17 @@ if ($method === 'PUT') {
     
     // Update product
     if ($image_url) {
-      $stmt = $pdo->prepare('UPDATE products SET name = ?, category = ?, price = ?, stock = ?, image_url = ? WHERE id = ?');
-      $stmt->execute([$name, $category, $price, $stock, $image_url, $id]);
+      $stmt = $pdo->prepare('UPDATE products SET name = ?, category = ?, price = ?, stock = ?, image_url = ?' . ($reorder_point !== null ? ', reorder_point = ?' : '') . ' WHERE id = ?');
+      $params = [$name, $category, $price, $stock, $image_url];
+      if ($reorder_point !== null) { $params[] = $reorder_point; }
+      $params[] = $id;
+      $stmt->execute($params);
     } else {
-      $stmt = $pdo->prepare('UPDATE products SET name = ?, category = ?, price = ?, stock = ? WHERE id = ?');
-      $stmt->execute([$name, $category, $price, $stock, $id]);
+      $stmt = $pdo->prepare('UPDATE products SET name = ?, category = ?, price = ?, stock = ?' . ($reorder_point !== null ? ', reorder_point = ?' : '') . ' WHERE id = ?');
+      $params = [$name, $category, $price, $stock];
+      if ($reorder_point !== null) { $params[] = $reorder_point; }
+      $params[] = $id;
+      $stmt->execute($params);
     }
     
     echo json_encode(['ok' => true, 'message' => 'Product updated successfully']);
@@ -214,6 +225,10 @@ if ($method === 'PATCH') {
     if (isset($_POST['stock'])) {
       $updates[] = 'stock = ?';
       $params[] = (int)$_POST['stock'];
+    }
+    if (isset($_POST['reorder_point'])) {
+      $updates[] = 'reorder_point = ?';
+      $params[] = (int)$_POST['reorder_point'];
     }
     
     // Handle file upload if provided

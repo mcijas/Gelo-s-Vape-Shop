@@ -25,12 +25,14 @@ try {
     category VARCHAR(80) DEFAULT NULL,
     price DECIMAL(10,2) NOT NULL DEFAULT 0,
     stock INT NOT NULL DEFAULT 0,
+    reorder_point INT NOT NULL DEFAULT 0,
     image_url VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )");
   // Ensure columns exist on legacy tables
   try { $pdo->exec("ALTER TABLE stock_movements ADD COLUMN IF NOT EXISTS user_id INT DEFAULT NULL"); } catch (Throwable $__) {}
   try { $pdo->exec("ALTER TABLE stock_movements ADD COLUMN IF NOT EXISTS supplier VARCHAR(255)"); } catch (Throwable $__) {}
+  try { $pdo->exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS reorder_point INT NOT NULL DEFAULT 0"); } catch (Throwable $__) {}
 } catch (Throwable $e) {
   http_response_code(500);
   echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
