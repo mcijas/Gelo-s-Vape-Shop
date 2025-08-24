@@ -108,6 +108,19 @@
                   <div id="price-error" class="error-message" role="alert" aria-live="polite"></div>
                 </div>
               </div>
+              <!-- New Barcode Field -->
+              <div class="div-5">
+                <div class="label"><label class="text-wrapper-6" for="barcode">Barcode</label></div>
+                <input
+                  class="input"
+                  placeholder="Scan or enter barcode"
+                  type="text"
+                  id="barcode"
+                  name="barcode"
+                  aria-describedby="barcode-help"
+                />
+                <small id="barcode-help" style="color:#a3a3a3;">Optional but recommended. Must be unique.</small>
+              </div>
             </div>
             <div class="div-10">
               <button class="button-3" type="button" onclick="parent.postMessage({ type: 'close-add-product' }, '*')"><span class="text-wrapper-14">Cancel</span></button>
@@ -124,6 +137,7 @@
         const catEl = document.getElementById('category-select');
         const qtyEl = document.getElementById('quantity');
         const priceEl = document.getElementById('price');
+        const barcodeEl = document.getElementById('barcode');
         const fileInput = document.getElementById('product-image');
         const browseBtn = document.querySelector('.button-2');
         const dropZone = document.querySelector('.div-wrapper');
@@ -192,6 +206,7 @@
           const category = catEl?.value || '';
           const stock = Number(qtyEl?.value || 0);
           const price = Number(priceEl?.value || 0);
+          const barcode = (barcodeEl?.value || '').trim();
           
           if (!name || !category) { 
             alert('Please enter product name and select category'); 
@@ -203,6 +218,7 @@
           formData.append('category', category);
           formData.append('stock', stock);
           formData.append('price', price);
+          if (barcode) formData.append('barcode', barcode);
           
           if (selectedFile) {
             formData.append('image', selectedFile);

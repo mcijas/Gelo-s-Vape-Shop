@@ -49,12 +49,15 @@ try {
     price DECIMAL(10,2) NOT NULL DEFAULT 0,
     stock INT NOT NULL DEFAULT 0,
     image_url VARCHAR(255) DEFAULT NULL,
+    barcode VARCHAR(128) UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )");
   // Add user_id and discount columns for existing tables if they don't exist (MySQL 8+)
   try { $pdo->exec("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS user_id INT DEFAULT NULL"); } catch (Throwable $__ ) {}
   try { $pdo->exec("ALTER TABLE stock_movements ADD COLUMN IF NOT EXISTS user_id INT DEFAULT NULL"); } catch (Throwable $__ ) {}
   try { $pdo->exec("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS discount DECIMAL(12,2) NOT NULL DEFAULT 0"); } catch (Throwable $__ ) {}
+  // Ensure barcode exists on legacy products table
+  try { $pdo->exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS barcode VARCHAR(128) UNIQUE"); } catch (Throwable $__ ) {}
 } catch (Throwable $e) {
   http_response_code(500);
   echo json_encode(['ok' => false, 'error' => 'DB init failed: '.$e->getMessage()]);

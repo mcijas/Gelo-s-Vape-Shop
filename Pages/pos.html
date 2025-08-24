@@ -76,7 +76,7 @@
       <main class="main-content pos-content">
         <div class="toolbar">
           <div class="search-bar">
-            <input type="search" placeholder="Search products..." aria-label="Search products" />
+            <input id="productSearch" type="search" placeholder="Search products..." aria-label="Search products" />
             <button type="submit" aria-label="Search"><span class="icon search"></span></button>
           </div>
           <div class="category-select">
@@ -150,7 +150,7 @@
                 <button class="pay-btn gcash">GCash</button>
               </div>
 
-              <label class="barcode-toggle"><input type="checkbox"/> Enable Barcode Scanner</label>
+              <label class="barcode-toggle"><input type="checkbox" id="enableScanner"/> Enable Barcode Scanner</label>
             </div>
           </aside>
         </section>
@@ -315,7 +315,7 @@
                 data.data.forEach(product => {
                   const card = createProductCard({
                     ...product,
-                    code: product.id || Math.random().toString().slice(2, 10)
+                    code: (product.barcode && String(product.barcode).trim()) || product.id || Math.random().toString().slice(2, 10)
                   });
                   grid.appendChild(card);
                 });
@@ -359,7 +359,7 @@
                 data.data.forEach(product => {
                   const card = createProductCard({
                     ...product,
-                    code: product.id || Math.random().toString().slice(2, 10)
+                    code: (product.barcode && String(product.barcode).trim()) || product.id || Math.random().toString().slice(2, 10)
                   });
                   grid.appendChild(card);
                 });
@@ -707,6 +707,78 @@
         if (clockOutBtnEl) clockOutBtnEl.addEventListener('click', clockOut);
         const voidTxnBtnEl = document.getElementById('voidTxnBtn');
         if (voidTxnBtnEl) voidTxnBtnEl.addEventListener('click', voidTransaction);
+
+        // Barcode scanner integration
+        const searchInputEl = document.getElementById('productSearch') || document.querySelector('.search-bar input[type="search"]');
+        const scannerToggleEl = document.querySelector('.barcode-toggle input');
+        let scannerEnabled = false;
+        let scanBuffer = '';
+        let scanTimer = null;
+        
+        function finalizeScan() {
+          const code = (scanBuffer || '').trim();
+          if (!code) return;
+          if (searchInputEl) searchInputEl.value = code;
+          // Safely build selector for attribute equals
+          const safe = code.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+          const card = document.querySelector(`.product-card[data-code="${safe}"]`);
+          if (card) {
+            addToCart(card);
+            // Auto-clear for next scan
+            if (searchInputEl) searchInputEl.value = '';
+            showNotification('Item added', 'success');
+          } else {
+            showNotification('No product found for code: ' + code, 'warning');
+          }
+          scanBuffer = '';
+        }
+        
+        function handleKeydown(e) {
+          if (!scannerEnabled) return;
+          const tgt = e.target;
+          const isEditable = tgt && (tgt.isContentEditable || (tgt.tagName === 'INPUT' && tgt.type !== 'search') || tgt.tagName === 'TEXTAREA');
+          if (isEditable) return; // don't interfere with other inputs (qty, customer, etc.)
+        
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            clearTimeout(scanTimer);
+            finalizeScan();
+            return;
+          }
+          if (e.key && e.key.length === 1) {
+            scanBuffer += e.key;
+            clearTimeout(scanTimer);
+            // Short delay to consider scan finished if no more keys arrive
+            scanTimer = setTimeout(finalizeScan, 100);
+          }
+        }
+        
+        function enableScanner(on) {
+          scannerEnabled = !!on;
+          if (scannerEnabled) {
+            document.addEventListener('keydown', handleKeydown);
+            if (searchInputEl) searchInputEl.focus();
+          } else {
+            document.removeEventListener('keydown', handleKeydown);
+            scanBuffer = '';
+            if (searchInputEl) searchInputEl.value = '';
+          }
+        }
+        
+        if (scannerToggleEl) {
+          scannerToggleEl.addEventListener('change', (e) => enableScanner(e.target.checked));
+        }
+        
+        if (searchInputEl) {
+          // Support Enter in the search field while scanner is enabled
+          searchInputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && scannerEnabled) {
+              e.preventDefault();
+              scanBuffer = searchInputEl.value || '';
+              finalizeScan();
+            }
+          });
+        }
 
         render();
       })();

@@ -13,10 +13,13 @@ try {
     stock INT NOT NULL DEFAULT 0,
     reorder_point INT NOT NULL DEFAULT 0,
     image_url VARCHAR(255) DEFAULT NULL,
+    barcode VARCHAR(128) UNIQUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )");
   // Ensure reorder_point exists on legacy tables
   try { $pdo->exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS reorder_point INT NOT NULL DEFAULT 0"); } catch (Throwable $__) {}
+  // Ensure barcode exists on legacy tables
+  try { $pdo->exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS barcode VARCHAR(128) UNIQUE"); } catch (Throwable $__) {}
 } catch (Throwable $e) {
   http_response_code(500);
   echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
@@ -48,7 +51,7 @@ if ($method === 'DELETE') {
 }
 
 if ($method === 'GET') {
-  $stmt = $pdo->query('SELECT id, name, category, price, stock, reorder_point, image_url FROM products ORDER BY name');
+  $stmt = $pdo->query('SELECT id, name, category, price, stock, reorder_point, image_url, barcode FROM products ORDER BY name');
   $products = $stmt->fetchAll();
   error_log("GET products: " . print_r($products, true));
   echo json_encode(['ok' => true, 'data' => $products]);
@@ -61,6 +64,8 @@ if ($method === 'POST') {
   $price = (float)($_POST['price'] ?? 0);
   $stock = (int)($_POST['stock'] ?? 0);
   $reorder_point = isset($_POST['reorder_point']) ? (int)$_POST['reorder_point'] : 0;
+  $barcode = isset($_POST['barcode']) ? trim($_POST['barcode']) : null;
+  if ($barcode === '') { $barcode = null; }
   
   if ($name === '') { http_response_code(400); echo json_encode(['ok'=>false,'error'=>'Name required']); exit; }
   
@@ -99,12 +104,18 @@ if ($method === 'POST') {
   }
   
   try {
-    $stmt = $pdo->prepare('INSERT INTO products (name, category, price, stock, image_url, reorder_point) VALUES (?, ?, ?, ?, ?, ?)');
-    $stmt->execute([$name, $category, $price, $stock, $image_url, $reorder_point]);
+    $stmt = $pdo->prepare('INSERT INTO products (name, category, price, stock, barcode, image_url, reorder_point) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    $stmt->execute([$name, $category, $price, $stock, $barcode, $image_url, $reorder_point]);
     echo json_encode(['ok' => true, 'id' => (int)$pdo->lastInsertId()]);
   } catch (Throwable $e) {
     http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    $msg = $e->getMessage();
+    // Handle duplicate barcode
+    if (property_exists($e, 'errorInfo') && is_array($e->errorInfo) && isset($e->errorInfo[1]) && (int)$e->errorInfo[1] === 1062 && stripos($msg, 'barcode') !== false) {
+      echo json_encode(['ok' => false, 'error' => 'Barcode already exists. Please use a unique barcode.']);
+    } else {
+      echo json_encode(['ok' => false, 'error' => $msg]);
+    }
   }
   exit;
 }
@@ -118,6 +129,8 @@ if ($method === 'PUT') {
   $price = (float)($_POST['price'] ?? 0);
   $stock = (int)($_POST['stock'] ?? 0);
   $reorder_point = isset($_POST['reorder_point']) ? (int)$_POST['reorder_point'] : null;
+  $barcode = isset($_POST['barcode']) ? trim($_POST['barcode']) : null;
+  if ($barcode === '') { $barcode = null; }
   
   try {
     // Check if product exists
@@ -165,15 +178,17 @@ if ($method === 'PUT') {
     
     // Update product
     if ($image_url) {
-      $stmt = $pdo->prepare('UPDATE products SET name = ?, category = ?, price = ?, stock = ?, image_url = ?' . ($reorder_point !== null ? ', reorder_point = ?' : '') . ' WHERE id = ?');
+      $stmt = $pdo->prepare('UPDATE products SET name = ?, category = ?, price = ?, stock = ?, image_url = ?' . ($reorder_point !== null ? ', reorder_point = ?' : '') . ', barcode = ? WHERE id = ?');
       $params = [$name, $category, $price, $stock, $image_url];
       if ($reorder_point !== null) { $params[] = $reorder_point; }
+      $params[] = $barcode;
       $params[] = $id;
       $stmt->execute($params);
     } else {
-      $stmt = $pdo->prepare('UPDATE products SET name = ?, category = ?, price = ?, stock = ?' . ($reorder_point !== null ? ', reorder_point = ?' : '') . ' WHERE id = ?');
+      $stmt = $pdo->prepare('UPDATE products SET name = ?, category = ?, price = ?, stock = ?' . ($reorder_point !== null ? ', reorder_point = ?' : '') . ', barcode = ? WHERE id = ?');
       $params = [$name, $category, $price, $stock];
       if ($reorder_point !== null) { $params[] = $reorder_point; }
+      $params[] = $barcode;
       $params[] = $id;
       $stmt->execute($params);
     }
@@ -181,7 +196,12 @@ if ($method === 'PUT') {
     echo json_encode(['ok' => true, 'message' => 'Product updated successfully']);
   } catch (Throwable $e) {
     http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    $msg = $e->getMessage();
+    if (property_exists($e, 'errorInfo') && is_array($e->errorInfo) && isset($e->errorInfo[1]) && (int)$e->errorInfo[1] === 1062 && stripos($msg, 'barcode') !== false) {
+      echo json_encode(['ok' => false, 'error' => 'Barcode already exists. Please use a unique barcode.']);
+    } else {
+      echo json_encode(['ok' => false, 'error' => $msg]);
+    }
   }
   exit;
 }
@@ -229,6 +249,10 @@ if ($method === 'PATCH') {
     if (isset($_POST['reorder_point'])) {
       $updates[] = 'reorder_point = ?';
       $params[] = (int)$_POST['reorder_point'];
+    }
+    if (isset($_POST['barcode'])) {
+      $updates[] = 'barcode = ?';
+      $params[] = (trim($_POST['barcode']) === '' ? null : trim($_POST['barcode']));
     }
     
     // Handle file upload if provided
@@ -278,7 +302,12 @@ if ($method === 'PATCH') {
     echo json_encode(['ok' => true, 'message' => 'Product updated successfully']);
   } catch (Throwable $e) {
     http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    $msg = $e->getMessage();
+    if (property_exists($e, 'errorInfo') && is_array($e->errorInfo) && isset($e->errorInfo[1]) && (int)$e->errorInfo[1] === 1062 && stripos($msg, 'barcode') !== false) {
+      echo json_encode(['ok' => false, 'error' => 'Barcode already exists. Please use a unique barcode.']);
+    } else {
+      echo json_encode(['ok' => false, 'error' => $msg]);
+    }
   }
   exit;
 }

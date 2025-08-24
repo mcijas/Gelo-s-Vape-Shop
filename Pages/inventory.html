@@ -140,6 +140,12 @@
                       <label style="color:#e7e7e7; display:block; margin-bottom:5px;">Current Stock</label>
                       <input type="number" id="editProductStock" min="0" style="width:100%; padding:10px; background:#1f2223; color:#e7e7e7; border:1px solid #3a3a3a; border-radius:6px;" required>
                     </div>
+                    <!-- New: Barcode field -->
+                    <div style="margin-bottom:15px;">
+                      <label style="color:#e7e7e7; display:block; margin-bottom:5px;">Barcode</label>
+                      <input type="text" id="editProductBarcode" placeholder="Scan or enter barcode" style="width:100%; padding:10px; background:#1f2223; color:#e7e7e7; border:1px solid #3a3a3a; border-radius:6px;">
+                      <small style="color:#a3a3a3; font-size:12px;">Optional but recommended. Must be unique.</small>
+                    </div>
                     
                     <!-- Image Upload Section -->
                     <div style="margin-bottom:15px;">
@@ -254,6 +260,7 @@
                 document.getElementById('editProductCategory').value = product.category || '';
                 document.getElementById('editProductPrice').value = product.price || 0;
                 document.getElementById('editProductStock').value = product.stock || 0;
+                document.getElementById('editProductBarcode').value = product.barcode || '';
                 
                 // Set image preview
                 const imagePreview = document.getElementById('editProductImagePreview');
@@ -296,6 +303,11 @@
                 formData.append('price', parseFloat(document.getElementById('editProductPrice').value));
                 formData.append('stock', parseInt(document.getElementById('editProductStock').value));
                 
+                // Append barcode if present
+                const barcodeVal = (document.getElementById('editProductBarcode').value || '').trim();
+                if (barcodeVal) {
+                  formData.append('barcode', barcodeVal);
+                }
                 const imageFile = document.getElementById('editProductImage').files[0];
                 if (imageFile) {
                   formData.append('image', imageFile);
