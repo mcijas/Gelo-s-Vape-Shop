@@ -56,6 +56,9 @@ try {
   try { $pdo->exec("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS user_id INT DEFAULT NULL"); } catch (Throwable $__ ) {}
   try { $pdo->exec("ALTER TABLE stock_movements ADD COLUMN IF NOT EXISTS user_id INT DEFAULT NULL"); } catch (Throwable $__ ) {}
   try { $pdo->exec("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS discount DECIMAL(12,2) NOT NULL DEFAULT 0"); } catch (Throwable $__ ) {}
+  // Link transactions to shifts/sessions and explicit cashier_id for analytics
+  try { $pdo->exec("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS shift_id INT DEFAULT NULL"); } catch (Throwable $__ ) {}
+  try { $pdo->exec("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS cashier_id INT DEFAULT NULL"); } catch (Throwable $__ ) {}
   // Ensure barcode exists on legacy products table
   try { $pdo->exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS barcode VARCHAR(128) UNIQUE"); } catch (Throwable $__ ) {}
 } catch (Throwable $e) {
@@ -136,6 +139,7 @@ $total = (float)($input['total'] ?? 0);
 $discount = (float)($input['discount'] ?? 0);
 $items = $input['items'] ?? [];
 $userId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : null;
+$shiftId = isset($input['shift_id']) ? (int)$input['shift_id'] : null;
 
 // Ensure non-negative values
 if ($total < 0) { $total = 0; }
@@ -146,9 +150,9 @@ try {
   $pdo->beginTransaction();
 
   $customer_id = isset($input['customer_id']) && $input['customer_id'] > 0 ? (int)$input['customer_id'] : null;
-  $stmt = $pdo->prepare("INSERT INTO transactions (ref, date, customer_name, customer_id, cashier, payment_method, total, discount, user_id)
-                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-  $stmt->execute([$ref, $date, $customer, $customer_id, $cashier, $method, $netTotal, $discount, $userId]);
+  $stmt = $pdo->prepare("INSERT INTO transactions (ref, date, customer_name, customer_id, cashier, payment_method, total, discount, user_id, shift_id, cashier_id)
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)" );
+  $stmt->execute([$ref, $date, $customer, $customer_id, $cashier, $method, $netTotal, $discount, $userId, $shiftId, $userId]);
   $txnId = (int)$pdo->lastInsertId();
 
   if (!empty($items)) {

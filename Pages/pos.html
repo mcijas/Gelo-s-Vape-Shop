@@ -164,7 +164,7 @@
         // Fetch current user for cashier name and guard page
         (async function ensureAuth(){
           try {
-            const res = await fetch('../api/auth/me.php');
+            const res = await fetch('../api/auth/me.php', { credentials: 'same-origin' });
             const data = await res.json();
             if (!res.ok || !data.ok) throw new Error('not auth');
             currentUserName = data.user?.name || sessionStorage.getItem('userName') || 'Admin';
@@ -306,7 +306,7 @@
           if (!grid) return;
 
           // Load fresh data from database
-          fetch('../api/products.php')
+          fetch('../api/products.php', { credentials: 'same-origin' })
             .then(res => res.json())
             .then(data => {
               if (data.ok && data.data && data.data.length > 0) {
@@ -349,7 +349,7 @@
         // Function to refresh products from database
         async function refreshProductsFromDB() {
           try {
-            const res = await fetch('../api/products.php');
+            const res = await fetch('../api/products.php', { credentials: 'same-origin' });
             const data = await res.json();
             if (res.ok && data.ok && data.data && data.data.length > 0) {
               // Update the product grid with fresh data from database
@@ -462,14 +462,12 @@
           try {
             const open = await getOpenShift();
             if (!open || !open.id) { showNotification('No open shift found', 'warning'); return; }
-            const closing = prompt('Enter Closing Cash Count (₱):', String(open.opening_cash || '0'));
-            if (closing === null) return;
-            const closingCash = parseFloat(closing || '0');
+            // No manual closing cash entry; backend auto-computes based on sales
             const res = await fetch('../api/shifts.php', {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'same-origin',
-              body: JSON.stringify({ id: open.id, closing_cash: isFinite(closingCash) ? closingCash : 0 })
+              body: JSON.stringify({ id: open.id })
             });
             const data = await res.json();
             if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to end shift');
@@ -484,7 +482,7 @@
             } catch (e) {
               // non-fatal
             }
-            showNotification('Shift ended successfully', 'success');
+            showNotification(`Shift ended. Close: ₱${Number(data.closing_cash||0).toFixed(2)}, Sales: ₱${Number(data.sales_total||0).toFixed(2)}, Var: ₱${Number(data.variance||0).toFixed(2)}`, 'success');
           } catch (e) {
             showNotification('Failed to end shift: ' + (e?.message || e), 'error');
           }
@@ -557,7 +555,7 @@
           let customerId = null;
           if (customerName !== 'Walk-in') {
             try {
-              const res = await fetch('../api/customers.php');
+              const res = await fetch('../api/customers.php', { credentials: 'same-origin' });
               const data = await res.json();
               if (res.ok && data.ok) {
                 // More flexible matching - trim spaces and case-insensitive
@@ -579,6 +577,11 @@
             customer_id: customerId
           };
           try {
+            // Attach current open shift id so sales link to the session
+            try {
+              const openShift = await getOpenShift();
+              if (openShift && openShift.id) txn.shift_id = openShift.id;
+            } catch (_) {}
             const res = await fetch('../api/transactions.php', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -675,7 +678,7 @@
           const dl = document.getElementById('posCustomerList');
           let list = [];
           try {
-            const res = await fetch('../api/customers.php');
+            const res = await fetch('../api/customers.php', { credentials: 'same-origin' });
             const data = await res.json();
             if (res.ok && data.ok) list = data.data || [];
           } catch (_) {

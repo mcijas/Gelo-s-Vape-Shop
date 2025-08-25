@@ -13,6 +13,10 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS voided_transactions (
   voided_at DATETIME NOT NULL,
   FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE CASCADE
 )");
+// Adjust FK so we can retain audit logs even if the original transaction is deleted
+try { $pdo->exec("ALTER TABLE voided_transactions MODIFY COLUMN transaction_id BIGINT NULL"); } catch (Throwable $__) {}
+try { $pdo->exec("ALTER TABLE voided_transactions DROP FOREIGN KEY voided_transactions_ibfk_1"); } catch (Throwable $__) {}
+try { $pdo->exec("ALTER TABLE voided_transactions ADD CONSTRAINT fk_voided_txn FOREIGN KEY (transaction_id) REFERENCES transactions(id) ON DELETE SET NULL"); } catch (Throwable $__) {}
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -61,15 +65,15 @@ try{
     $pdo->prepare('UPDATE products SET stock = stock + ? WHERE name=?')->execute([$it['qty'], $it['product']]);
   }
 
+  // log void action BEFORE deleting parent transaction to avoid FK insertion failure
+  $ins=$pdo->prepare('INSERT INTO voided_transactions (transaction_id, employee_name, reason, voided_at) VALUES (?,?,?,NOW())');
+  $ins->execute([$tid,$employee,$reason]);
+
   // delete stock movements related to this txn
   $pdo->prepare('DELETE FROM stock_movements WHERE type="OUT" AND date=? AND product IS NOT NULL')->execute([$txn['date']]);
 
-  // remove the transaction and items (ON DELETE CASCADE for items already) or mark as void; easier: delete
+  // remove the transaction and items (ON DELETE CASCADE for items already)
   $pdo->prepare('DELETE FROM transactions WHERE id=?')->execute([$tid]);
-
-  // log void action
-  $ins=$pdo->prepare('INSERT INTO voided_transactions (transaction_id, employee_name, reason, voided_at) VALUES (?,?,?,NOW())');
-  $ins->execute([$tid,$employee,$reason]);
 
   $pdo->commit();
   echo json_encode(['ok'=>true]);

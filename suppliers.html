@@ -477,6 +477,7 @@
               <thead>
                 <tr style="background:#2a2a2a; text-align:left;">
                   <th style="padding:8px; font-weight:600;">Product Name</th>
+                  <th style="padding:8px; font-weight:600; width:160px;">Barcode</th>
                   <th style="padding:8px; font-weight:600; width:160px;">Category</th>
                   <th style="padding:8px; font-weight:600; width:120px;">Quantity</th>
                   <th style="padding:8px; font-weight:600; width:140px;">Unit Cost (₱)</th>
@@ -816,7 +817,7 @@
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               credentials: 'same-origin',
-              body: JSON.stringify({ supplier, product: it.product.trim(), category: it.category, qty: Number(it.qty), unitCost: Number(it.unitCost || 0), date })
+              body: JSON.stringify({ supplier, product: it.product.trim(), barcode: (it.barcode || '').trim(), category: it.category, qty: Number(it.qty), unitCost: Number(it.unitCost || 0), date })
             });
             const data = await res.json().catch(()=>({ ok:false, error:'Invalid server response' }));
             if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to save some items');
@@ -844,7 +845,10 @@
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td style="padding:6px;">
-            <input type="text" class="ldProductName" placeholder="Product name" value="${(prefill.product||'').replace(/"/g,'&quot;')}" style="width:100%; padding:8px; border-radius:6px; border:1px solid #3a3a3a; background:#1a1a1a; color:#e5e5e5;" />
+            <input type="text" class="ldProductName" placeholder="Product name" value="${(prefill.product||'').replace(/\"/g,'&quot;')}" style="width:100%; padding:8px; border-radius:6px; border:1px solid #3a3a3a; background:#1a1a1a; color:#e5e5e5;" />
+          </td>
+          <td style="padding:6px;">
+            <input type="text" class="ldBarcode" placeholder="Scan or enter barcode" value="${(prefill.barcode||'').replace(/\"/g,'&quot;')}" style="width:100%; padding:8px; border-radius:6px; border:1px solid #3a3a3a; background:#1a1a1a; color:#e5e5e5;" />
           </td>
           <td style="padding:6px;">
             <select class="ldCategory" style="width:100%; padding:8px; border-radius:6px; border:1px solid #3a3a3a; background:#1a1a1a; color:#e5e5e5;">
@@ -872,9 +876,10 @@
         const catSel = tr.querySelector('.ldCategory');
         if (prefill.category) { catSel.value = prefill.category; }
         const nameEl = tr.querySelector('.ldProductName');
+        const barcodeEl = tr.querySelector('.ldBarcode');
         const qtyEl = tr.querySelector('.ldQty');
         const costEl = tr.querySelector('.ldUnitCost');
-        [nameEl, qtyEl, costEl, catSel].forEach(el => el && el.addEventListener('input', updateDeliverySummary));
+        [nameEl, qtyEl, costEl, catSel, barcodeEl].forEach(el => el && el.addEventListener('input', updateDeliverySummary));
         const removeBtn = tr.querySelector('.ldRemoveRow');
         if (removeBtn) removeBtn.onclick = () => { tr.remove(); if (!document.querySelector('#ldProductsBody tr')) addProductRow(); updateDeliverySummary(); };
         updateDeliverySummary();
@@ -884,10 +889,12 @@
         const rows = Array.from(document.querySelectorAll('#ldProductsBody tr'));
         return rows.map(tr => ({
           product: tr.querySelector('.ldProductName')?.value || '',
+          barcode: tr.querySelector('.ldBarcode')?.value || '',
           category: tr.querySelector('.ldCategory')?.value || 'Units',
           qty: Number(tr.querySelector('.ldQty')?.value || 0),
           unitCost: Number(tr.querySelector('.ldUnitCost')?.value || 0),
           _nameEl: tr.querySelector('.ldProductName'),
+          _barcodeEl: tr.querySelector('.ldBarcode'),
           _qtyEl: tr.querySelector('.ldQty'),
         }));
       }

@@ -856,7 +856,7 @@ try {
             // Operational Reports: fetchers and renderers
             async function getShifts() {
               try {
-                const res = await fetch('api/shifts.php');
+                const res = await fetch('api/shifts.php', { credentials: 'same-origin' });
                 const data = await res.json();
                 if (res.ok && data.ok) return data.data || [];
               } catch (_) {}
@@ -864,7 +864,7 @@ try {
             }
             async function getVoids() {
               try {
-                const res = await fetch('api/void_transaction.php');
+                const res = await fetch('api/void_transaction.php', { credentials: 'same-origin' });
                 const data = await res.json();
                 if (res.ok && data.ok) return data.data || [];
               } catch (_) {}
@@ -872,7 +872,7 @@ try {
             }
             async function getStaffHours() {
               try {
-                const res = await fetch('api/staff_hours.php');
+                const res = await fetch('api/staff_hours.php', { credentials: 'same-origin' });
                 const data = await res.json();
                 if (res.ok && data.ok) return data.data || [];
               } catch (_) {}
@@ -889,6 +889,7 @@ try {
                 const durTxt = durMin ? (durMin >= 60 ? `${Math.floor(durMin/60)}h ${durMin%60}m` : `${durMin}m`) : (s.status==='open'?'(open)':'');
                 const shiftText = `${s.employee_name} • ${start.toLocaleString()}${end? ' - '+end.toLocaleString(): ''} ${durTxt?` (${durTxt})`:''}`;
                 const cashText = `Open ${fmtPeso(parseFloat(s.opening_cash||0))} → ${s.closing_cash!==null ? 'Close '+fmtPeso(parseFloat(s.closing_cash||0)) + (s.variance!==null?` (Var ${fmtPeso(parseFloat(s.variance||0))})`: '') : '—'}`;
+                // Prefer API-provided sales_total; fallback to 0
                 const salesText = fmtPeso(parseFloat(s.sales_total||0));
                 return `<tr><td>${shiftText}</td><td>${cashText}</td><td>${salesText}</td></tr>`;
               }).join('');
