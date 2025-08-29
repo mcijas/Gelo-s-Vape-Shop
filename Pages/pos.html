@@ -96,8 +96,6 @@
           <div class="ops-controls" style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap">
             <button type="button" id="startShiftBtn" class="ops-button green" title="Start Shift">🟢 Start Shift</button>
             <button type="button" id="endShiftBtn" class="ops-button red" title="End Shift">🔴 End Shift</button>
-            <button type="button" id="clockInBtn" class="ops-button blue" title="Clock In">🕒 Clock In</button>
-            <button type="button" id="clockOutBtn" class="ops-button purple" title="Clock Out">🕘 Clock Out</button>
             <button type="button" id="voidTxnBtn" class="ops-button orange" title="Void Transaction">✖️ Void Txn</button>
           </div>
         </div>
@@ -487,32 +485,7 @@
             showNotification('Failed to end shift: ' + (e?.message || e), 'error');
           }
         }
-        async function clockIn() {
-          try {
-            // attach to open shift if exists
-            const open = await getOpenShift();
-            const fd = new FormData();
-            if (open && open.id) fd.append('shift_id', String(open.id));
-            const res = await fetch('../api/staff_hours.php', { method: 'POST', body: fd, credentials: 'same-origin' });
-            const data = await res.json();
-            if (!res.ok || !data.ok) throw new Error(data.error || 'Clock-in failed');
-            showNotification('Clocked in successfully', 'success');
-          } catch (e) {
-            showNotification('Failed to clock in: ' + (e?.message || e), 'error');
-          }
-        }
-        async function clockOut() {
-          try {
-            const open = await getOpenClock();
-            if (!open || !open.id) { showNotification('No active clock-in found', 'warning'); return; }
-            const res = await fetch('../api/staff_hours.php', { method: 'PATCH', headers: { 'Content-Type':'application/json' }, credentials: 'same-origin', body: JSON.stringify({ id: open.id }) });
-            const data = await res.json();
-            if (!res.ok || !data.ok) throw new Error(data.error || 'Clock-out failed');
-            showNotification('Clocked out successfully', 'success');
-          } catch (e) {
-            showNotification('Failed to clock out: ' + (e?.message || e), 'error');
-          }
-        }
+
         async function voidTransaction() {
           try {
             const tidStr = prompt('Enter Transaction ID to void (numeric ID from receipt):');
@@ -704,10 +677,7 @@
         if (startShiftBtnEl) startShiftBtnEl.addEventListener('click', startShift);
         const endShiftBtnEl = document.getElementById('endShiftBtn');
         if (endShiftBtnEl) endShiftBtnEl.addEventListener('click', endShift);
-        const clockInBtnEl = document.getElementById('clockInBtn');
-        if (clockInBtnEl) clockInBtnEl.addEventListener('click', clockIn);
-        const clockOutBtnEl = document.getElementById('clockOutBtn');
-        if (clockOutBtnEl) clockOutBtnEl.addEventListener('click', clockOut);
+
         const voidTxnBtnEl = document.getElementById('voidTxnBtn');
         if (voidTxnBtnEl) voidTxnBtnEl.addEventListener('click', voidTransaction);
 
