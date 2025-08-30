@@ -689,12 +689,13 @@
            tbody.innerHTML = suppliers.map(s=>{
              const cats = (Array.isArray(s.categories)?s.categories:[]).join(',');
              const tags = (Array.isArray(s.categories)?s.categories:[]).map(cat=>`<span class="category-tag">${cat}</span>`).join('');
+             const lod = s.last_order_date ? (String(s.last_order_date).includes('T') ? String(s.last_order_date).split('T')[0] : String(s.last_order_date).split(' ')[0]) : '—';
              return `
                <tr data-id="${s.id}" data-categories="${cats}">
                  <td>${s.name}</td>
                  <td>${s.email||''}</td>
                  <td><div class="category-tags">${tags}</div></td>
-                 <td>—</td>
+                 <td>${lod}</td>
                  <td><span class="status-badge active">Active</span></td>
                  <td class="actions">
                    <button class="action-btn view-details" title="View Details">👁️</button>
@@ -831,6 +832,7 @@
           setStockMovements(entries);
 
           closeModal('logDeliveryModal');
++         await loadSuppliers();
           alert(`Delivery logged for ${items.length} product(s).`);
         } catch (e) {
           alert('Server error: ' + (e?.message || e));

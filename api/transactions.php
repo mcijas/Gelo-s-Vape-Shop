@@ -61,6 +61,8 @@ try {
   try { $pdo->exec("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS cashier_id INT DEFAULT NULL"); } catch (Throwable $__ ) {}
   // Ensure barcode exists on legacy products table
   try { $pdo->exec("ALTER TABLE products ADD COLUMN IF NOT EXISTS barcode VARCHAR(128) UNIQUE"); } catch (Throwable $__ ) {}
+  // NEW: add status column to transactions to support void/refund lifecycle
+  try { $pdo->exec("ALTER TABLE transactions ADD COLUMN IF NOT EXISTS status ENUM('completed','voided','refunded') NOT NULL DEFAULT 'completed'"); } catch (Throwable $__) {}
 } catch (Throwable $e) {
   http_response_code(500);
   echo json_encode(['ok' => false, 'error' => 'DB init failed: '.$e->getMessage()]);
@@ -71,7 +73,7 @@ try {
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
   header('Content-Type: application/json');
   try {
-    $txStmt = $pdo->query("SELECT t.id, t.ref, t.date, t.customer_name, t.customer_id, t.cashier, t.payment_method, t.total, t.discount, c.name as customer FROM transactions t LEFT JOIN customers c ON t.customer_id = c.id ORDER BY t.date DESC LIMIT 1000");
+    $txStmt = $pdo->query("SELECT t.id, t.ref, t.date, t.customer_name, t.customer_id, t.cashier, t.payment_method, t.total, t.discount, t.status, c.name as customer FROM transactions t LEFT JOIN customers c ON t.customer_id = c.id ORDER BY t.date DESC LIMIT 1000");
     $txns = $txStmt->fetchAll();
     $itemsStmt = $pdo->query("SELECT transaction_id, code, product, category, qty, price FROM transaction_items");
     $items = $itemsStmt->fetchAll();

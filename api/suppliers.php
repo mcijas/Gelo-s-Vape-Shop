@@ -30,6 +30,8 @@ try { $pdo->exec("ALTER TABLE suppliers ADD COLUMN email VARCHAR(255) DEFAULT NU
 try { $pdo->exec("ALTER TABLE suppliers ADD COLUMN phone VARCHAR(100) DEFAULT NULL"); } catch (Throwable $__) {}
 try { $pdo->exec("ALTER TABLE suppliers ADD COLUMN address TEXT DEFAULT NULL"); } catch (Throwable $__) {}
 try { $pdo->exec("ALTER TABLE suppliers ADD COLUMN notes TEXT DEFAULT NULL"); } catch (Throwable $__) {}
+// New: last_order_date for showing Last Order in Suppliers page
+try { $pdo->exec("ALTER TABLE suppliers ADD COLUMN last_order_date DATETIME DEFAULT NULL"); } catch (Throwable $__) {}
 
 // Extra safety: ensure missing columns exist at runtime (covers legacy DBs without migrations)
 if (!function_exists('ensureColumnExists')) {
@@ -50,6 +52,7 @@ ensureColumnExists($pdo, 'suppliers', 'categories', 'TEXT DEFAULT NULL');
 ensureColumnExists($pdo, 'suppliers', 'notes', 'TEXT DEFAULT NULL');
 ensureColumnExists($pdo, 'suppliers', 'status', "ENUM('active','deleted') DEFAULT 'active'");
 ensureColumnExists($pdo, 'suppliers', 'created_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
+ensureColumnExists($pdo, 'suppliers', 'last_order_date', 'DATETIME DEFAULT NULL');
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -57,7 +60,19 @@ if ($method === 'GET') {
   $status = isset($_GET['status']) ? $_GET['status'] : 'active';
   if ($status !== 'active' && $status !== 'deleted') $status = 'active';
   try {
-    $stmt = $pdo->prepare("SELECT id, name, email, phone, address, categories, notes, status, created_at FROM suppliers WHERE status = ? ORDER BY name");
+    // Prefer dynamic last_order_date from stock_movements (IN) and fall back to stored column
+    $sql = "SELECT s.id, s.name, s.email, s.phone, s.address, s.categories, s.notes, s.status, s.created_at,
+                   COALESCE(s.last_order_date, sm.last_order_date) AS last_order_date
+            FROM suppliers s
+            LEFT JOIN (
+              SELECT supplier, MAX(date) AS last_order_date
+              FROM stock_movements
+              WHERE supplier IS NOT NULL AND type = 'IN'
+              GROUP BY supplier
+            ) sm ON sm.supplier = s.name
+            WHERE s.status = ?
+            ORDER BY s.name";
+    $stmt = $pdo->prepare($sql);
     $stmt->execute([$status]);
     $rows = $stmt->fetchAll();
     // Attempt to decode categories JSON to array when possible
@@ -69,8 +84,22 @@ if ($method === 'GET') {
     }
     echo json_encode(['ok' => true, 'data' => $rows]);
   } catch (Throwable $e) {
-    http_response_code(500);
-    echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
+    // Fallback if stock_movements table is missing or join fails
+    try {
+      $stmt = $pdo->prepare("SELECT id, name, email, phone, address, categories, notes, status, created_at, last_order_date FROM suppliers WHERE status = ? ORDER BY name");
+      $stmt->execute([$status]);
+      $rows = $stmt->fetchAll();
+      foreach ($rows as &$r) {
+        if (isset($r['categories']) && $r['categories']) {
+          $decoded = json_decode($r['categories'], true);
+          if (json_last_error() === JSON_ERROR_NONE) $r['categories'] = $decoded;
+        }
+      }
+      echo json_encode(['ok' => true, 'data' => $rows]);
+    } catch (Throwable $e2) {
+      http_response_code(500);
+      echo json_encode(['ok' => false, 'error' => $e2->getMessage()]);
+    }
   }
   exit;
 }
@@ -109,6 +138,7 @@ if ($method === 'PATCH' || $method === 'PUT') {
     if (isset($input['categories'])) { $updates[] = 'categories = ?'; $params[] = json_encode(is_array($input['categories']) ? $input['categories'] : []); }
     if (isset($input['notes'])) { $updates[] = 'notes = ?'; $params[] = trim($input['notes']); }
     if (isset($input['status'])) { $updates[] = 'status = ?'; $params[] = ($input['status'] === 'deleted' ? 'deleted' : 'active'); }
+    if (isset($input['last_order_date'])) { $updates[] = 'last_order_date = ?'; $params[] = $input['last_order_date'] ? date('Y-m-d H:i:s', strtotime($input['last_order_date'])) : null; }
     if (empty($updates)) { http_response_code(400); echo json_encode(['ok'=>false,'error'=>'No fields to update']); exit; }
     $params[] = $id;
     $stmt = $pdo->prepare('UPDATE suppliers SET '.implode(', ',$updates).' WHERE id = ?');

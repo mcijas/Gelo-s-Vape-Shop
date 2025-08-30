@@ -96,7 +96,8 @@
           <div class="ops-controls" style="margin-left:auto; display:flex; gap:8px; flex-wrap:wrap">
             <button type="button" id="startShiftBtn" class="ops-button green" title="Start Shift">🟢 Start Shift</button>
             <button type="button" id="endShiftBtn" class="ops-button red" title="End Shift">🔴 End Shift</button>
-            <button type="button" id="voidTxnBtn" class="ops-button orange" title="Void Transaction">✖️ Void Txn</button>
+            <button type="button" id="voidCartBtn" class="ops-button orange" title="Void Cart (discard current cart before checkout)">🗑️ Void Cart</button>
+            <button type="button" id="refundBtn" class="ops-button purple" title="Refund / Return (requires receipt)">↩️ Refund/Return</button>
           </div>
         </div>
 
@@ -486,6 +487,87 @@
           }
         }
 
+        async function voidCart() {
+          try {
+            if (!cart.size) { showNotification('Cart is already empty', 'info'); return; }
+            const confirmDiscard = confirm('Void entire cart? This will discard all items and reset totals.');
+            if (!confirmDiscard) return;
+            cart.clear();
+            render();
+            showNotification('Cart discarded', 'success');
+          } catch (e) {
+            showNotification('Failed to void cart: ' + (e?.message || e), 'error');
+          }
+        }
+
+        async function refundReturn() {
+          try {
+            const tidStr = prompt('Enter completed Transaction ID to refund (numeric ID from receipt):');
+            if (tidStr === null) return;
+            const tid = parseInt(tidStr, 10);
+            if (!tid || tid <= 0) { showNotification('Invalid transaction ID', 'warning'); return; }
+
+            // Load the original transaction (client-side filter from list)
+            let txn = null;
+            try {
+              const res = await fetch('../api/transactions.php', { credentials: 'same-origin' });
+              const data = await res.json();
+              if (res.ok && data.ok && Array.isArray(data.data)) {
+                txn = data.data.find(t => Number(t.id) === tid);
+              }
+            } catch (_) {}
+
+            if (!txn) { showNotification('Transaction not found', 'warning'); return; }
+            if (txn.status && String(txn.status).toLowerCase() === 'voided') {
+              showNotification('Cannot refund a voided transaction', 'warning');
+              return;
+            }
+
+            const fullRefund = confirm('Refund the entire transaction? Click Cancel to input partial items.');
+            let items = [];
+            if (fullRefund) {
+              items = (txn.items || []).map(it => ({ code: it.code || null, product: it.product, qty: it.qty }));
+              if (!items.length) { showNotification('No items found in the transaction', 'warning'); return; }
+            } else {
+              const help = 'Enter items to refund as code=qty or name=qty, comma-separated.\nExample: 123456789=1, Coil 0.8Ω=2';
+              const inp = prompt(help);
+              if (inp === null) return;
+              const parts = (inp || '').split(',').map(s => s.trim()).filter(Boolean);
+              for (const p of parts) {
+                const m = p.match(/^(.+?)[=:]\s*(\d+)$/);
+                if (!m) continue;
+                const key = m[1].trim();
+                const qty = parseInt(m[2], 10);
+                if (!isFinite(qty) || qty <= 0) continue;
+                const byCode = (txn.items || []).find(it => String(it.code || '') === key);
+                if (byCode) { items.push({ code: byCode.code || null, product: byCode.product, qty }); continue; }
+                const byName = (txn.items || []).find(it => String(it.product) === key);
+                if (byName) { items.push({ code: byName.code || null, product: byName.product, qty }); }
+              }
+              if (!items.length) { showNotification('No valid items parsed for refund', 'warning'); return; }
+            }
+
+            const reason = prompt('Reason for refund/return:');
+            if (reason === null || String(reason).trim() === '') { showNotification('Refund reason is required', 'warning'); return; }
+
+            const payload = {
+              transaction_id: tid,
+              reason: String(reason).trim(),
+              items: items.map(it => ({ code: it.code || undefined, product: it.product, qty: it.qty }))
+            };
+
+            const res = await fetch('../api/refunds.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) });
+            const data = await res.json();
+            if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to process refund');
+            showNotification(`Refund processed. Total: ₱${Number(data.refund_total || 0).toFixed(2)}`, 'success');
+
+            // Refresh product stock to reflect returned items
+            try { await refreshProductsFromDB(); } catch (_) {}
+          } catch (e) {
+            showNotification('Refund failed: ' + (e?.message || e), 'error');
+          }
+        }
+
         async function voidTransaction() {
           try {
             const tidStr = prompt('Enter Transaction ID to void (numeric ID from receipt):');
@@ -678,8 +760,10 @@
         const endShiftBtnEl = document.getElementById('endShiftBtn');
         if (endShiftBtnEl) endShiftBtnEl.addEventListener('click', endShift);
 
-        const voidTxnBtnEl = document.getElementById('voidTxnBtn');
-        if (voidTxnBtnEl) voidTxnBtnEl.addEventListener('click', voidTransaction);
+        const voidCartBtnEl = document.getElementById('voidCartBtn');
+        if (voidCartBtnEl) voidCartBtnEl.addEventListener('click', voidCart);
+        const refundBtnEl = document.getElementById('refundBtn');
+        if (refundBtnEl) refundBtnEl.addEventListener('click', refundReturn);
 
         // Barcode scanner integration
         const searchInputEl = document.getElementById('productSearch') || document.querySelector('.search-bar input[type="search"]');

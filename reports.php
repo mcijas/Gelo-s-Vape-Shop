@@ -597,6 +597,40 @@ try {
               } catch {}
               try { return JSON.parse(localStorage.getItem('transactions') || '[]'); } catch { return []; }
             }
+            // NEW: refunds fetcher
+            async function getRefunds() {
+              try {
+                const res = await fetch('api/refunds.php', { method: 'GET' });
+                const data = await res.json();
+                if (res.ok && data.ok) return data.data || [];
+              } catch {}
+              return [];
+            }
+            // Add missing fetchers for Operational Reports
+            async function getShifts() {
+              try {
+                const res = await fetch('api/shifts.php', { method: 'GET' });
+                const data = await res.json();
+                if (res.ok && data.ok) return data.data || [];
+              } catch {}
+              return [];
+            }
+            async function getVoids() {
+              try {
+                const res = await fetch('api/void_transaction.php', { method: 'GET' });
+                const data = await res.json();
+                if (res.ok && data.ok) return data.data || [];
+              } catch {}
+              return [];
+            }
+            async function getStaffHours() {
+              try {
+                const res = await fetch('api/staff_hours.php', { method: 'GET' });
+                const data = await res.json();
+                if (res.ok && data.ok) return data.data || [];
+              } catch {}
+              return [];
+            }
             function inRange(iso, startISO, endISO) {
               if (!startISO && !endISO) return true;
               const d = new Date(iso);
@@ -795,39 +829,75 @@ try {
               }).join('');
             }
 
-            function renderSalesSections(rowsTx) {
-              const rev = rowsTx.reduce((s,t)=>s+(parseFloat(t.total)||0),0);
-              const count = rowsTx.length;
-              const aov = count ? rev / count : 0;
-              document.getElementById('revTotal').textContent = fmtPeso(rev);
-              document.getElementById('txnCount').textContent = String(count);
-              document.getElementById('aov').textContent = fmtPeso(aov);
+            function renderSalesSections(rowsTx, refunds, products) {
+              // Exclude voided transactions from sales
+              const txns = (rowsTx || []).filter(t => String(t.status || '').toLowerCase() !== 'voided');
+
+              // Build initial aggregates from transactions
+              const grossRev = txns.reduce((s,t)=>s+(parseFloat(t.total)||0),0);
+              const count = txns.length;
 
               const byProduct = {};
               const byCategory = {};
               const byEmployee = {};
               const byPayment = {};
-              rowsTx.forEach(t=>{
+
+              txns.forEach(t=>{
                 byEmployee[t.cashier||'—'] = byEmployee[t.cashier||'—'] || { txns: 0, rev: 0 };
                 byEmployee[t.cashier||'—'].txns += 1;
                 byEmployee[t.cashier||'—'].rev += parseFloat(t.total)||0;
-                byPayment[t.paymentMethod||'—'] = byPayment[t.paymentMethod||'—'] || { txns: 0, rev: 0 };
-                byPayment[t.paymentMethod||'—'].txns += 1;
-                byPayment[t.paymentMethod||'—'].rev += parseFloat(t.total)||0;
+
+                byPayment[t.paymentMethod||t.payment_method||'—'] = byPayment[t.paymentMethod||t.payment_method||'—'] || { txns: 0, rev: 0 };
+                byPayment[t.paymentMethod||t.payment_method||'—'].txns += 1;
+                byPayment[t.paymentMethod||t.payment_method||'—'].rev += parseFloat(t.total)||0;
+
                 (t.items||[]).forEach(it=>{
-                  byProduct[it.product] = byProduct[it.product] || { qty: 0, rev: 0 };
-                  byProduct[it.product].qty += parseInt(it.qty)||0;
-                  byProduct[it.product].rev += (parseInt(it.qty)||0)*(parseFloat(it.price)||0);
+                  const prodName = it.product;
+                  const qty = parseInt(it.qty)||0;
+                  const price = parseFloat(it.price)||0;
+                  byProduct[prodName] = byProduct[prodName] || { qty: 0, rev: 0 };
+                  byProduct[prodName].qty += qty;
+                  byProduct[prodName].rev += qty * price;
+
                   const cat = (it.category||'').toLowerCase();
                   byCategory[cat] = byCategory[cat] || { qty: 0, rev: 0 };
-                  byCategory[cat].qty += parseInt(it.qty)||0;
-                  byCategory[cat].rev += (parseInt(it.qty)||0)*(parseFloat(it.price)||0);
+                  byCategory[cat].qty += qty;
+                  byCategory[cat].rev += qty * price;
                 });
               });
 
+              // Subtract refunds from aggregates
+              const prodCategoryMap = {};
+              (products||[]).forEach(p => { prodCategoryMap[p.name] = (p.category||'').toLowerCase(); });
+              let totalRefundAmount = 0;
+              (refunds || []).forEach(r => {
+                const name = r.product_name || '—';
+                const qty = parseInt(r.quantity)||0;
+                const amount = parseFloat(r.refund_amount)||0;
+                totalRefundAmount += amount;
+                // by product
+                if (!byProduct[name]) { byProduct[name] = { qty: 0, rev: 0 }; }
+                byProduct[name].qty -= qty;
+                byProduct[name].rev -= amount;
+                // by category (best-effort via product catalog)
+                const cat = prodCategoryMap[name] || '—';
+                if (!byCategory[cat]) { byCategory[cat] = { qty: 0, rev: 0 }; }
+                byCategory[cat].qty -= qty;
+                byCategory[cat].rev -= amount;
+              });
+
+              const netRev = Math.max(0, grossRev - totalRefundAmount);
+              const aov = count ? netRev / count : 0;
+              const revEl = document.getElementById('revTotal');
+              const txnEl = document.getElementById('txnCount');
+              const aovEl = document.getElementById('aov');
+              if (revEl) revEl.textContent = fmtPeso(netRev);
+              if (txnEl) txnEl.textContent = String(count);
+              if (aovEl) aovEl.textContent = fmtPeso(aov);
+
               const sbp = document.getElementById('salesByProduct');
-              const products = Object.keys(byProduct);
-              sbp.innerHTML = products.length ? products.map(p=>`<tr><td>${p}</td><td>${byProduct[p].qty}</td><td>${fmtPeso(byProduct[p].rev)}</td></tr>`).join('') : '<tr><td colspan="3">No data</td></tr>';
+              const productsKeys = Object.keys(byProduct);
+              sbp.innerHTML = productsKeys.length ? productsKeys.map(p=>`<tr><td>${p}</td><td>${byProduct[p].qty}</td><td>${fmtPeso(byProduct[p].rev)}</td></tr>`).join('') : '<tr><td colspan="3">No data</td></tr>';
 
               const sbc = document.getElementById('salesByCategory');
               const cats = Object.keys(byCategory);
@@ -842,7 +912,7 @@ try {
               pbd.innerHTML = pms.length ? pms.map(m=>`<tr><td>${m}</td><td>${byPayment[m].txns}</td><td>${fmtPeso(byPayment[m].rev)}</td></tr>`).join('') : '<tr><td colspan="3">No data</td></tr>';
 
               const ph = document.getElementById('purchaseHistory');
-              ph.innerHTML = rowsTx.length ? rowsTx.map(t=>{
+              ph.innerHTML = txns.length ? txns.map(t=>{
                 let customerDisplay = 'Walk-in';
                 if (t.customer_id && t.customer_id !== '0' && t.customer_id !== '') {
                   customerDisplay = t.customer || t.customer_name || '—';
@@ -853,46 +923,105 @@ try {
               }).join('') : '<tr><td colspan="4">No data</td></tr>';
             }
 
-            // Operational Reports: fetchers and renderers
-            async function getShifts() {
-              try {
-                const res = await fetch('api/shifts.php', { credentials: 'same-origin' });
-                const data = await res.json();
-                if (res.ok && data.ok) return data.data || [];
-              } catch (_) {}
-              return [];
+            // NEW: Render refunds summary in Financial Reports
+            function renderRefundsTable(refunds) {
+              const body = document.getElementById('refundsTable');
+              const card = document.getElementById('refundsDiscounts');
+              const count = (refunds||[]).length;
+              const total = (refunds||[]).reduce((s,r)=> s + (parseFloat(r.refund_amount)||0), 0);
+              if (body) body.innerHTML = count ? `<tr><td>Refunds</td><td>${count}</td><td>${fmtPeso(total)}</td></tr>` : '<tr><td colspan="3">No data</td></tr>';
+              if (card) card.textContent = fmtPeso(total);
             }
-            async function getVoids() {
-              try {
-                const res = await fetch('api/void_transaction.php', { credentials: 'same-origin' });
-                const data = await res.json();
-                if (res.ok && data.ok) return data.data || [];
-              } catch (_) {}
-              return [];
+            async function renderAll() {
+              const [allRows, suppliers, products] = await Promise.all([getStockMovements(), getSuppliers(), getProducts()]);
+              const rows = (allRows || []).filter(r => inRange(r.date, from?.value, to?.value)).sort((a, b) => new Date(b.date) - new Date(a.date));
+              renderStockMovement(rows);
+              renderInventoryValuation(rows);
+              renderStockLevels(products || []);
+              renderLowStock(products || []);
+              renderSpendingBySupplier(rows);
+              renderSpendingByCategory(rows);
+              renderSupplierCards(rows, suppliers || []);
+              renderSupplierPerformance(rows);
+
+              const allTx = await getTransactions();
+              const txns = (allTx || []).filter(t => inRange(t.date, from?.value, to?.value)).sort((a, b) => new Date(b.date) - new Date(a.date));
+              const allRefunds = await getRefunds();
+              const refunds = (allRefunds || []).filter(r => inRange(r.refund_date, from?.value, to?.value));
+              renderSalesSections(txns, refunds, products || []);
+              renderRefundsTable(refunds);
+
+              // Operational
+              const [shifts, voids, hours] = await Promise.all([
+                getShifts(), getVoids(), getStaffHours()
+              ]);
+              const filtShifts = (shifts||[]).filter(s => inRange(s.started_at, from?.value, to?.value));
+              const filtVoids = (voids||[]).filter(v => inRange(v.voided_at, from?.value, to?.value));
+              const filtHours = (hours||[]).filter(h => inRange(h.clock_in, from?.value, to?.value));
+              await renderShiftReports(filtShifts);
+              renderVoids(filtVoids);
+              renderStaffHours(filtHours);
             }
-            async function getStaffHours() {
-              try {
-                const res = await fetch('api/staff_hours.php', { credentials: 'same-origin' });
-                const data = await res.json();
-                if (res.ok && data.ok) return data.data || [];
-              } catch (_) {}
-              return [];
-            }
-            function renderShiftReports(shifts) {
+            // NEW: per-shift aggregation of sales, refunds, and purchases
+            async function renderShiftReports(shifts) {
               const body = document.getElementById('shiftReports');
               if (!body) return;
-              if (!shifts || !shifts.length) { body.innerHTML = '<tr><td colspan="3">No data</td></tr>'; return; }
-              body.innerHTML = shifts.map(s => {
+              const rowsArr = Array.isArray(shifts) ? shifts : [];
+              if (!rowsArr.length) { body.innerHTML = '<tr><td colspan="3">No data</td></tr>'; return; }
+
+              const [allTxns, allRefunds, allMoves] = await Promise.all([
+                getTransactions(), getRefunds(), getStockMovements()
+              ]);
+              const txnById = {};
+              (allTxns||[]).forEach(t => { txnById[t.id] = t; });
+
+              const html = rowsArr.map(s => {
                 const start = new Date(s.started_at);
-                const end = s.ended_at ? new Date(s.ended_at) : null;
-                const durMin = s.duration_minutes || (end ? Math.round((end - start) / 60000) : 0);
-                const durTxt = durMin ? (durMin >= 60 ? `${Math.floor(durMin/60)}h ${durMin%60}m` : `${durMin}m`) : (s.status==='open'?'(open)':'');
-                const shiftText = `${s.employee_name} • ${start.toLocaleString()}${end? ' - '+end.toLocaleString(): ''} ${durTxt?` (${durTxt})`:''}`;
-                const cashText = `Open ${fmtPeso(parseFloat(s.opening_cash||0))} → ${s.closing_cash!==null ? 'Close '+fmtPeso(parseFloat(s.closing_cash||0)) + (s.variance!==null?` (Var ${fmtPeso(parseFloat(s.variance||0))})`: '') : '—'}`;
-                // Prefer API-provided sales_total; fallback to 0
-                const salesText = fmtPeso(parseFloat(s.sales_total||0));
-                return `<tr><td>${shiftText}</td><td>${cashText}</td><td>${salesText}</td></tr>`;
+                const end = s.ended_at ? new Date(s.ended_at) : new Date();
+
+                const shiftTxns = (allTxns||[]).filter(t => {
+                  const tDate = new Date(t.date);
+                  const status = String(t.status || '').toLowerCase();
+                  const isCompleted = !status || status === 'completed';
+                  const linked = (t.shift_id && String(t.shift_id) === String(s.id));
+                  const windowed = (!t.shift_id && tDate >= start && tDate <= end && (!s.employee_name || (t.cashier === s.employee_name)));
+                  return isCompleted && (linked || windowed);
+                });
+                const salesTotal = shiftTxns.reduce((sum,t)=> sum + (parseFloat(t.total)||0), 0);
+                const txnCount = shiftTxns.length;
+
+                const shiftRefunds = (allRefunds||[]).filter(r => {
+                  const rt = txnById[r.transaction_id];
+                  if (rt) {
+                    if (rt.shift_id && String(rt.shift_id) === String(s.id)) return true;
+                    const rd = new Date(r.refund_date);
+                    return (!rt.shift_id && rd >= start && rd <= end && (!s.employee_name || (rt.cashier === s.employee_name)));
+                  }
+                  const rd = new Date(r.refund_date);
+                  return rd >= start && rd <= end; // last resort
+                });
+                const refundTotal = shiftRefunds.reduce((sum,r)=> sum + (parseFloat(r.refund_amount)||0), 0);
+                const refundCount = shiftRefunds.length;
+
+                const shiftPurchases = (allMoves||[]).filter(m => m.type === 'IN' && (new Date(m.date) >= start) && (new Date(m.date) <= end));
+                const purchaseItems = shiftPurchases.reduce((s,m)=> s + (parseInt(m.qty)||0), 0);
+                const purchaseCost = shiftPurchases.reduce((s,m)=> s + ((parseFloat(m.qty)||0) * (parseFloat(m.unitCost)||0)), 0);
+
+                const cashBits = [];
+                cashBits.push('Opening: ' + fmtPeso(s.opening_cash || 0));
+                if (s.closing_cash != null) cashBits.push('Closing: ' + fmtPeso(s.closing_cash));
+                if (s.variance != null) cashBits.push('Var: ' + fmtPeso(s.variance));
+
+                const label = `${s.employee_name || '—'} — ${new Date(s.started_at).toLocaleString()}${s.ended_at ? (' to ' + new Date(s.ended_at).toLocaleString()) : ' (open)'}`;
+                const salesCell = `
+                  <div>Sales (completed): ${fmtPeso(salesTotal)} (${txnCount} txns)</div>
+                  <div>Refunds: -${fmtPeso(refundTotal)} (${refundCount})</div>
+                  <div>Purchases: ${fmtPeso(purchaseCost)} (${purchaseItems} items)</div>
+                `;
+                return `<tr><td>${label}</td><td>${cashBits.join('<br/>')}</td><td>${salesCell}</td></tr>`;
               }).join('');
+
+              body.innerHTML = html || '<tr><td colspan="3">No data</td></tr>';
             }
             function renderVoids(voids) {
               const body = document.getElementById('voids');
@@ -917,32 +1046,7 @@ try {
               body.innerHTML = emps.length ? emps.map(n => `<tr><td>${n}</td><td>${(byEmp[n].minutes/60).toFixed(2)}</td><td>${byEmp[n].shifts}</td></tr>`).join('') : '<tr><td colspan="3">No data</td></tr>';
             }
 
-            async function renderAll() {
-              const [allRows, suppliers, products] = await Promise.all([getStockMovements(), getSuppliers(), getProducts()]);
-              const rows = (allRows || []).filter(r => inRange(r.date, from?.value, to?.value)).sort((a, b) => new Date(b.date) - new Date(a.date));
-              renderStockMovement(rows);
-              renderInventoryValuation(rows);
-              renderStockLevels(products || []);
-              renderLowStock(products || []);
-              renderSpendingBySupplier(rows);
-              renderSpendingByCategory(rows);
-              renderSupplierCards(rows, suppliers || []);
-              renderSupplierPerformance(rows);
-
-              const txns = (await getTransactions()).filter(t => inRange(t.date, from?.value, to?.value)).sort((a, b) => new Date(b.date) - new Date(a.date));
-              renderSalesSections(txns);
-
-              // Operational
-              const [shifts, voids, hours] = await Promise.all([
-                getShifts(), getVoids(), getStaffHours()
-              ]);
-              const filtShifts = (shifts||[]).filter(s => inRange(s.started_at, from?.value, to?.value));
-              const filtVoids = (voids||[]).filter(v => inRange(v.voided_at, from?.value, to?.value));
-              const filtHours = (hours||[]).filter(h => inRange(h.clock_in, from?.value, to?.value));
-              renderShiftReports(filtShifts);
-              renderVoids(filtVoids);
-              renderStaffHours(filtHours);
-            }
+            // duplicate renderAll removed
 
             // initial render
             renderAll();

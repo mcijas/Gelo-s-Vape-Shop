@@ -138,6 +138,16 @@ try {
   $mv = $pdo->prepare('INSERT INTO stock_movements (date, code, product, supplier, category, type, qty, unit_price, payment_method, user_id) VALUES (?, ?, ?, ?, ?, "IN", ?, ?, NULL, ?)');
   $mv->execute([$date, $productId, $product, $supplier, $category, $qty, $unitCost, $userId]);
 
+  // NEW: Update supplier last_order_date if supplier name provided (best-effort, do not fail transaction)
+  if ($supplier !== '') {
+    try {
+      $supUpd = $pdo->prepare('UPDATE suppliers SET last_order_date = GREATEST(COALESCE(last_order_date, "1970-01-01 00:00:00"), ?) WHERE name = ?');
+      $supUpd->execute([$date, $supplier]);
+    } catch (Throwable $__) {
+      // ignore if suppliers table/column not present; GET endpoint computes fallback from stock_movements
+    }
+  }
+
   error_log("Stock IN movement recorded successfully for product=$product");
 
   $pdo->commit();
