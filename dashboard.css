@@ -244,3 +244,56 @@ th, td {
   text-align: left;
   border-bottom: 1px solid #333;
 }
+
+/* --- Pie/Doughnut charts responsive shrink --- */
+/* --- Reinforce small pie/doughnut sizing and centering --- */
+.charts-grid .small-chart { display: flex; flex-direction: column; align-items: center; }
+.charts-grid .small-chart header { align-self: stretch; }
+#chartCategory, #chartPayments {
+  display: block;
+  margin: 0 auto;
+  width: min(70%, 420px) !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1;
+}
+
+.charts-grid .small-chart canvas {
+  display: block;
+  margin: 0 auto;
+  width: 70% !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1;
+  max-width: 420px;
+  min-height: 0;
+}
+@media (max-width: 1280px) {
+  .charts-grid .small-chart canvas { width: 80% !important; max-width: 360px; }
+}
+@media (max-width: 768px) {
+  .charts-grid .small-chart canvas { width: 90% !important; max-width: 300px; }
+}
+
+/* --- Bottom section polish (tables and KPI cards) --- */
+.lows-grid header { color: #d6d6d6; letter-spacing: .3px; }
+.lows-grid table { border: 1px solid #2b2f30; border-radius: 10px; overflow: hidden; background: #1a1c1e; }
+.lows-grid thead th { background: #1f2223; color: #d8d8d8; font-weight: 700; }
+.lows-grid tbody tr:nth-child(even) { background: #17191b; }
+.lows-grid tbody tr:hover { background: #232729; }
+.lows-grid td a {
+  display: inline-block;
+  text-decoration: none;
+  background: #1f2223;
+  color: #e7e7e7;
+  border: 1px solid #2b2f30;
+  padding: 6px 10px;
+  border-radius: 9999px;
+  transition: background-color .2s, border-color .2s;
+}
+.lows-grid td a:hover { background: #232729; border-color: #334155; }
+
+.misc-grid .card {
+  background: radial-gradient(120% 90% at 0% 0%, #1d1f20, #181a1b);
+  border: 1px solid #2b2f30;
+}
+.misc-grid .big { font-size: 32px; text-shadow: 0 0 10px rgba(59,130,246,.25); }
+.misc-grid .card header { color: #bdbdbd; letter-spacing: .3px; }

@@ -76,8 +76,8 @@
       <section class="charts-grid">
         <div class="card"><header>Sales Over Time</header><canvas id="chartSales"></canvas></div>
         <div class="card"><header>Best-Selling Products</header><canvas id="chartProducts"></canvas></div>
-        <div class="card"><header>Sales by Category</header><canvas id="chartCategory"></canvas></div>
-        <div class="card"><header>Payment Method Split</header><canvas id="chartPayments"></canvas></div>
+        <div class="card small-chart"><header>Sales by Category</header><canvas id="chartCategory"></canvas></div>
+        <div class="card small-chart"><header>Payment Method Split</header><canvas id="chartPayments"></canvas></div>
       </section>
 
       <section class="lows-grid">
@@ -267,6 +267,15 @@
             values: Object.values(paymentAgg).map(v => Number(v) || 0) 
           };
 
+          // Distinct colors for each category label (prevents duplicates like 'units' and 'hardware')
+          const categoryColorMap = {
+            'units': '#3b82f6',       // blue
+            'disposable': '#f97316',  // orange
+            'e-juice': '#22c55e',     // green
+            'hardware': '#a855f7'     // purple (changed to avoid conflict)
+          };
+          const categoryBg = (categoryData.labels || []).map(l => categoryColorMap[(l||'').toLowerCase().trim()] || '#94a3b8');
+
           const ctx1 = document.getElementById('chartSales');
           new Chart(ctx1, { type: 'line', data: { labels: last7Labels, datasets: [{ label: 'Sales', data: salesByDay, borderColor: '#4ade80', backgroundColor: 'rgba(74, 222, 128, .08)', fill: true, tension: .3 }] }, options: { plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#2a2a2a' }}, y: { beginAtZero: true, grid: { color: '#2a2a2a' }}} }});
 
@@ -274,7 +283,7 @@
           new Chart(ctx2, { type: 'bar', data: { labels: productData.labels, datasets: [{ data: productData.values, backgroundColor: '#60a5fa' }] }, options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, grid: { color: '#2a2a2a' }}, y: { grid: { color: '#2a2a2a' }}} }});
 
           const ctx3 = document.getElementById('chartCategory');
-          new Chart(ctx3, { type: 'pie', data: { labels: categoryData.labels, datasets: [{ data: categoryData.values, backgroundColor: ['#f97316','#22c55e','#3b82f6'] }] }, options: { plugins: { legend: { position: 'bottom' }}} });
+          new Chart(ctx3, { type: 'pie', data: { labels: categoryData.labels, datasets: [{ data: categoryData.values, backgroundColor: categoryBg }] }, options: { plugins: { legend: { position: 'bottom' }}} });
 
           const ctx4 = document.getElementById('chartPayments');
           new Chart(ctx4, { type: 'doughnut', data: { labels: paymentData.labels, datasets: [{ data: paymentData.values, backgroundColor: ['#fde047','#22c55e'] }] }, options: { cutout: '60%', plugins: { legend: { position: 'bottom' }}} });
