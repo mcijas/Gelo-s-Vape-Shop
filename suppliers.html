@@ -659,6 +659,133 @@
              // Global variables
        let rows = [];
        
+       // Product caches for Log Delivery autocomplete
+       let allProducts = [];
+       let productsByName = new Map();
+       let productsByBarcode = new Map();
+       let supplierProductNames = new Map(); // supplier => Set(productName)
+       let lastUnitCostBySupplierProduct = new Map(); // `${supplier}||${product}` => unitCost
+       let lastCategoryBySupplierProduct = new Map(); // `${supplier}||${product}` => category
+       let productsLoaded = false;
+
+       async function ensureProductCaches() {
+         if (productsLoaded) return;
+         try {
+           const [pRes, mRes] = await Promise.all([
+             fetch('api/products.php', { credentials: 'same-origin' }),
+             fetch('api/stock_movements.php', { credentials: 'same-origin' })
+           ]);
+           const [pData, mData] = await Promise.all([
+             pRes.json().catch(() => ({})),
+             mRes.json().catch(() => ({}))
+           ]);
+           allProducts = (pRes.ok && pData.ok && Array.isArray(pData.data)) ? pData.data : [];
+           productsByName.clear();
+           productsByBarcode.clear();
+           allProducts.forEach(prod => {
+             const nameKey = (prod.name || '').toLowerCase();
+             if (nameKey) productsByName.set(nameKey, prod);
+             if (prod.barcode) productsByBarcode.set(String(prod.barcode), prod);
+           });
+           supplierProductNames.clear();
+           lastUnitCostBySupplierProduct.clear();
+           lastCategoryBySupplierProduct.clear();
+           const moves = (mRes.ok && mData.ok && Array.isArray(mData.data)) ? mData.data : [];
+           // Process most recent first so the first set is the latest
+           for (const mv of moves) {
+             if ((mv.type || '') !== 'IN') continue;
+             const sup = (mv.supplier || '').trim();
+             const prod = (mv.product || '').trim();
+             if (!sup || !prod) continue;
+             if (!supplierProductNames.has(sup)) supplierProductNames.set(sup, new Set());
+             supplierProductNames.get(sup).add(prod);
+             const key = sup + '||' + prod;
+             if (!lastUnitCostBySupplierProduct.has(key) && mv.unitCost != null) {
+               lastUnitCostBySupplierProduct.set(key, Number(mv.unitCost) || 0);
+             }
+             if (!lastCategoryBySupplierProduct.has(key) && mv.category) {
+               lastCategoryBySupplierProduct.set(key, mv.category);
+             }
+           }
+           productsLoaded = true;
+         } catch (_) {
+           // If fetching fails, keep caches empty and allow manual entry
+           productsLoaded = true;
+         }
+       }
+
+       function getProductsForSupplier(supName) {
+         const set = supName && supplierProductNames.get(supName);
+         if (set && set.size) {
+           const names = Array.from(set);
+           return names.map(n => productsByName.get(n.toLowerCase()) || { name: n }).filter(Boolean);
+         }
+         return allProducts.slice();
+       }
+
+       function autofillFromProduct(prod, catSel, costEl, barcodeEl) {
+         try {
+           if (barcodeEl && prod.barcode) barcodeEl.value = String(prod.barcode);
+           const sup = document.getElementById('ldSupplier')?.value || '';
+           const key = sup + '||' + (prod.name || '');
+           const lastCat = lastCategoryBySupplierProduct.get(key) || prod.category || '';
+           if (catSel && lastCat) {
+             const opt = Array.from(catSel.options).find(o => o.value.toLowerCase() === String(lastCat).toLowerCase());
+             if (opt) catSel.value = opt.value;
+           }
+           const lastPrice = lastUnitCostBySupplierProduct.get(key);
+           const fallback = (prod.price != null) ? Number(prod.price) : 0;
+           if (costEl && (lastPrice != null || fallback)) {
+             const val = (lastPrice != null ? lastPrice : fallback) || 0;
+             costEl.value = String(Number(val).toFixed(2));
+           }
+         } catch (_) {}
+       }
+
+       function attachNameAutocomplete(nameEl, barcodeEl, catSel, costEl) {
+         if (!nameEl) return () => {};
+         const listId = 'dl_' + Math.random().toString(36).slice(2);
+         const dl = document.createElement('datalist');
+         dl.id = listId;
+         document.body.appendChild(dl);
+         nameEl.setAttribute('list', listId);
+         const updateList = () => {
+           const sup = document.getElementById('ldSupplier')?.value || '';
+           const q = (nameEl.value || '').toLowerCase();
+           const candidates = getProductsForSupplier(sup);
+           const filtered = q ? candidates.filter(p => (p.name || '').toLowerCase().includes(q)) : candidates;
+           dl.innerHTML = filtered.slice(0, 50).map(p => `<option value="${(p.name || '').replace(/\"/g,'&quot;')}"></option>`).join('');
+         };
+         nameEl.addEventListener('input', updateList);
+         nameEl.addEventListener('focus', updateList);
+         nameEl.addEventListener('change', () => {
+           const val = (nameEl.value || '').trim();
+           if (!val) return;
+           const prod = productsByName.get(val.toLowerCase());
+           if (prod) {
+             autofillFromProduct(prod, catSel, costEl, barcodeEl);
+           }
+           updateDeliverySummary();
+         });
+         // initialize list
+         updateList();
+         return () => { try { document.body.removeChild(dl); } catch(_){} };
+       }
+
+       function attachBarcodeAutoFill(barcodeEl, nameEl, catSel, costEl) {
+         if (!barcodeEl) return;
+         barcodeEl.addEventListener('input', () => {
+           const code = (barcodeEl.value || '').trim();
+           if (!code) return;
+           const prod = productsByBarcode.get(code);
+           if (prod) {
+             if (nameEl) nameEl.value = prod.name || '';
+             autofillFromProduct(prod, catSel, costEl, barcodeEl);
+             updateDeliverySummary();
+           }
+         });
+       }
+
        // Remove any legacy localStorage-backed suppliers data to ensure DB is the source of truth
        try { localStorage.removeItem('suppliers'); localStorage.removeItem('archivedSuppliers'); } catch {}
 
@@ -721,13 +848,20 @@
          if (addBtn) addBtn.addEventListener('click', openAddSupplierModal);
          // Log Delivery launcher
          const logBtn = document.getElementById('logDeliveryBtn');
-         if (logBtn) logBtn.addEventListener('click', () => {
-           const sel = document.getElementById('ldSupplier');
-           if (sel) {
-             sel.innerHTML = suppliers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
-           }
-           const d = document.getElementById('ldDate');
-           if (d) d.valueAsDate = new Date();
+        if (logBtn) logBtn.addEventListener('click', async () => {
+          await ensureProductCaches();
+          const sel = document.getElementById('ldSupplier');
+          if (sel) {
+            sel.innerHTML = suppliers.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
+            sel.onchange = () => {
+              document.querySelectorAll('#ldProductsBody .ldProductName').forEach(inp => {
+                const ev = new Event('input');
+                inp.dispatchEvent(ev);
+              });
+            };
+          }
+          const d = document.getElementById('ldDate');
+          if (d) d.valueAsDate = new Date();
 
            // Initialize product rows and summary
            const tbody = document.getElementById('ldProductsBody');
@@ -832,7 +966,6 @@
           setStockMovements(entries);
 
           closeModal('logDeliveryModal');
-+         await loadSuppliers();
           alert(`Delivery logged for ${items.length} product(s).`);
         } catch (e) {
           alert('Server error: ' + (e?.message || e));
@@ -882,6 +1015,9 @@
         const qtyEl = tr.querySelector('.ldQty');
         const costEl = tr.querySelector('.ldUnitCost');
         [nameEl, qtyEl, costEl, catSel, barcodeEl].forEach(el => el && el.addEventListener('input', updateDeliverySummary));
+        // Attach autocomplete and barcode autofill
+        attachNameAutocomplete(nameEl, barcodeEl, catSel, costEl);
+        attachBarcodeAutoFill(barcodeEl, nameEl, catSel, costEl);
         const removeBtn = tr.querySelector('.ldRemoveRow');
         if (removeBtn) removeBtn.onclick = () => { tr.remove(); if (!document.querySelector('#ldProductsBody tr')) addProductRow(); updateDeliverySummary(); };
         updateDeliverySummary();
