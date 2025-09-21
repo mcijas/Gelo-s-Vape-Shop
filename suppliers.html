@@ -720,12 +720,13 @@
            const names = Array.from(set);
            return names.map(n => productsByName.get(n.toLowerCase()) || { name: n }).filter(Boolean);
          }
-         return allProducts.slice();
+         // If supplier has no prior deliveries, don't show unrelated products; allow manual entry
+         return [];
        }
 
        function autofillFromProduct(prod, catSel, costEl, barcodeEl) {
          try {
-           if (barcodeEl && prod.barcode) barcodeEl.value = String(prod.barcode);
+           if (barcodeEl) barcodeEl.value = prod.barcode ? String(prod.barcode) : '';
            const sup = document.getElementById('ldSupplier')?.value || '';
            const key = sup + '||' + (prod.name || '');
            const lastCat = lastCategoryBySupplierProduct.get(key) || prod.category || '';
