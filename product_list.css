@@ -69,7 +69,7 @@ thead th:nth-child(6), tbody td:nth-child(6) { width: 140px; text-align: center;
 }
 
 .stock-badge.low-stock {
-  background: #dc2626;
+  background: #f59e0b; /* orange for low */
   color: #ffffff;
 }
 
@@ -80,7 +80,7 @@ thead th:nth-child(6), tbody td:nth-child(6) { width: 140px; text-align: center;
 }
 
 .stock-badge.normal-stock {
-  background: #059669;
+  background: #22c55e;
   color: #ffffff;
 }
 

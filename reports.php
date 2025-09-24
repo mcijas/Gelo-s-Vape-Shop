@@ -266,7 +266,7 @@ try {
               </table>
             </div>
             <div class="card-table">
-              <header>Void / Cancelled Transactions</header>
+              <header>Returned / Refunded products</header>
               <table>
                 <thead><tr><th>Date</th><th>Txn ID</th><th>Employee</th><th>Reason</th></tr></thead>
                 <tbody id="voids"><tr><td colspan="4">No data</td></tr></tbody>
@@ -336,12 +336,12 @@ try {
               const weekStart = new Date(today);
               weekStart.setDate(weekStart.getDate() - today.getDay());
               const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-
+            
               const yyyy = (d) => d.getFullYear();
               const mm = (d) => String(d.getMonth() + 1).padStart(2, '0');
               const dd = (d) => String(d.getDate()).padStart(2, '0');
               const formatDate = (d) => `${yyyy(d)}-${mm(d)}-${dd(d)}`;
-
+            
               switch (preset.value) {
                 case 'today':
                   from.value = formatDate(today);
@@ -368,10 +368,15 @@ try {
                   to.value = formatDate(today);
                   break;
               }
+            
+              // Immediately re-render when preset changes to keep UI consistent
+              renderAll();
             });
-
+            
             apply.addEventListener('click', renderAll);
             
+            // Initialize date inputs from the default preset on first load
+            preset.dispatchEvent(new Event('change'));
             // Report section navigation
             const reportLinks = document.querySelectorAll('.report-link');
             const reportSections = document.querySelectorAll('.report-section');
@@ -978,6 +983,9 @@ try {
               const html = rowsArr.map(s => {
                 const start = new Date(s.started_at);
                 const end = s.ended_at ? new Date(s.ended_at) : new Date();
+                // Use calendar-day windows for purchases to avoid missing entries saved at 00:00:00
+                const startDay = new Date(start); startDay.setHours(0,0,0,0);
+                const endDay = new Date(end); endDay.setHours(23,59,59,999);
 
                 const shiftTxns = (allTxns||[]).filter(t => {
                   const tDate = new Date(t.date);
@@ -1003,14 +1011,26 @@ try {
                 const refundTotal = shiftRefunds.reduce((sum,r)=> sum + (parseFloat(r.refund_amount)||0), 0);
                 const refundCount = shiftRefunds.length;
 
-                const shiftPurchases = (allMoves||[]).filter(m => m.type === 'IN' && (new Date(m.date) >= start) && (new Date(m.date) <= end));
+                // Purchases: treat movement timestamps on the same calendar dates as within shift window
+                const shiftPurchases = (allMoves||[]).filter(m => m.type === 'IN' && (new Date(m.date) >= startDay) && (new Date(m.date) <= endDay));
                 const purchaseItems = shiftPurchases.reduce((s,m)=> s + (parseInt(m.qty)||0), 0);
                 const purchaseCost = shiftPurchases.reduce((s,m)=> s + ((parseFloat(m.qty)||0) * (parseFloat(m.unitCost)||0)), 0);
+
+                // Compute cash sales for variance fallback when server did not store it
+                const cashSales = shiftTxns
+                  .filter(t => String(t.paymentMethod || t.payment_method || '').toLowerCase() === 'cash')
+                  .reduce((sum,t)=> sum + (parseFloat(t.total)||0), 0);
 
                 const cashBits = [];
                 cashBits.push('Opening: ' + fmtPeso(s.opening_cash || 0));
                 if (s.closing_cash != null) cashBits.push('Closing: ' + fmtPeso(s.closing_cash));
-                if (s.variance != null) cashBits.push('Var: ' + fmtPeso(s.variance));
+                if (s.variance != null) {
+                  cashBits.push('Var: ' + fmtPeso(s.variance));
+                } else if (s.closing_cash != null) {
+                  const expected = (parseFloat(s.opening_cash)||0) + (parseFloat(cashSales)||0);
+                  const computedVar = (parseFloat(s.closing_cash)||0) - expected;
+                  cashBits.push('Var: ' + fmtPeso(computedVar));
+                }
 
                 const label = `${s.employee_name || '—'} — ${new Date(s.started_at).toLocaleString()}${s.ended_at ? (' to ' + new Date(s.ended_at).toLocaleString()) : ' (open)'}`;
                 const salesCell = `

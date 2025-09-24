@@ -24,8 +24,9 @@
         .thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
         .stock-badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 8px; }
         .critical-stock { background: #dc2626; color: #e7e7e7; }
-        .low-stock { background: #d97706; color: #e7e7e7; }
-        .normal-stock { background: #059669; color: #e7e7e7; }
+        .low-stock { background: #f59e0b; color: #e7e7e7; }
+        .normal-stock { background: #22c55e; color: #e7e7e7; }
+        .moderate-stock { background: #fde047; color: #1f2937; }
         .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); backdrop-filter: blur(2px); align-items: center; justify-content: center; z-index: 1000; }
         .modal { background: #262626; border: 1px solid #333; border-radius: 12px; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,.5); width: 600px; max-width: 95vw; }
         .close-modal { position: absolute; top: 8px; right: 10px; width: 32px; height: 32px; border-radius: 6px; border: 1px solid #3a3a3a; background: #1f2223; color: #e7e7e7; cursor: pointer; }
@@ -247,8 +248,8 @@
                 
                 tbody.innerHTML = list.map(p => {
                     products[p.id] = p;
-                    const badgeClass = (p.stock <= 5) ? 'critical-stock' : (p.stock <= 15) ? 'low-stock' : 'normal-stock';
-                    const badgeText = (p.stock <= 5) ? 'Critical' : (p.stock <= 15) ? 'Low' : 'Normal';
+                    const badgeClass = (p.stock <= 5) ? 'critical-stock' : (p.stock <= 15) ? 'low-stock' : (p.stock <= 30) ? 'moderate-stock' : 'normal-stock';
+                    const badgeText = (p.stock <= 5) ? 'Critical' : (p.stock <= 15) ? 'Low' : (p.stock <= 30) ? 'Moderate' : 'Good';
                     return `
                         <tr onclick="openEditProduct(products[${p.id}])" style="cursor:pointer;">
                             <td><img class="thumb" src="${p.image_url ? p.image_url : '../img/rectangle-10.png'}" alt="${p.name}"></td>

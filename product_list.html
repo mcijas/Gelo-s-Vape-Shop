@@ -182,8 +182,8 @@
             const fmt = (n) => '₱' + Number(n||0).toLocaleString('en-PH');
             
             tbody.innerHTML = list.map(p => {
-              const badgeClass = (p.stock<=5) ? 'critical-stock' : (p.stock<=15) ? 'low-stock' : 'normal-stock';
-              const badgeText = (p.stock<=5) ? 'Critical' : (p.stock<=15) ? 'Low' : 'Normal';
+              const badgeClass = (p.stock<=5) ? 'critical-stock' : (p.stock<=15) ? 'low-stock' : (p.stock<=30) ? 'moderate-stock' : 'good-stock';
+              const badgeText = (p.stock<=5) ? 'Critical' : (p.stock<=15) ? 'Low' : (p.stock<=30) ? 'Moderate' : 'Good';
               return `
                 <tr data-product-id="${p.id}" style="cursor:pointer;">
                   <td><img class="thumb" src="${p.image_url ? p.image_url : '../img/rectangle-10.png'}" alt="${p.name}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;"></td>
