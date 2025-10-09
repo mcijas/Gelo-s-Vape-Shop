@@ -1237,3 +1237,66 @@
 .card-table tbody td { padding: 10px 12px; border-bottom: 1px solid #2e2e2e; color: #eaeaea; }
 .card-table tbody tr:hover { background: #2d2d2d; }
   
+/* Section toolbar dropdown styles */
+.section-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.section-toolbar .form-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-toolbar .form-group label {
+  color: #a3a3a3;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Apply system dropdown styling to report category selects */
+.section-toolbar .form-group select,
+.section-dropdown,
+.section-toolbar select[id^="category_"] {
+  min-width: 180px;
+  height: 40px;
+  background-color: #262626;
+  color: #f5f5f5;
+  border: 1px solid #404040;
+  border-radius: 8px;
+  padding: 0 12px;
+  appearance: none;
+  outline: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.section-toolbar .form-group select:hover,
+.section-dropdown:hover,
+.section-toolbar select[id^="category_"]:hover {
+  background-color: #2b2b2b;
+}
+
+.section-toolbar .form-group select:focus,
+.section-dropdown:focus,
+.section-toolbar select[id^="category_"]:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+/* Ensure dropdown doesn’t shift layout on narrow screens */
+@media (max-width: 600px) {
+  .section-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .section-toolbar .form-group select,
+  .section-dropdown,
+  .section-toolbar select[id^="category_"] {
+    min-width: 140px;
+    width: 100%;
+  }
+}
+  

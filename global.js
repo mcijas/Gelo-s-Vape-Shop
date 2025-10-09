@@ -48,15 +48,13 @@
 
   function applyRoleUI(role){
     const isAdmin = role === 'admin';
-    // Remove any legacy standalone Users nav item
-    document.querySelectorAll('#usersNav').forEach(el => el.remove());
-
     // toggle generic admin-only elements (fallback)
     document.querySelectorAll('[data-admin-only], .admin-only, .nav-users').forEach(el => {
       el.style.display = isAdmin ? '' : 'none';
     });
-
-    // Build Settings submenu and place Users under it
+    // Ensure Users is a top-level sidebar item (not under Settings)
+    ensureUsersNav(isAdmin);
+    // Clean up Settings submenu (remove deprecated items, ensure structure)
     ensureUsersUnderSettings(isAdmin);
   }
 
@@ -104,21 +102,49 @@
         if(li) li.remove();
       }
     });
+    // Always remove any Users submenu entries; we want it in the sidebar
+    Array.from(submenu.querySelectorAll('a')).forEach(a => {
+      if ((a.textContent || '').trim().toLowerCase() === 'users' || /users\.html$/i.test(a.getAttribute('href') || '')) {
+        const liItem = a.closest('li');
+        if (liItem) liItem.remove();
+      }
+    });
+  }
 
-    // Handle Users submenu entry (admin-only)
-    // First, remove any existing Users submenu if not admin
-    if (!isAdmin) {
-      Array.from(submenu.querySelectorAll('a')).forEach(a => {
-        if ((a.textContent || '').trim().toLowerCase() === 'users' || /users\.html$/i.test(a.getAttribute('href') || '')) {
-          const li = a.closest('li');
-          if (li) li.remove();
-        }
-      });
-      return;
+  function ensureUsersNav(isAdmin){
+    // Find the main sidebar nav list
+    const navList = document.querySelector('.nav-list') || document.querySelector('.sidebar .nav ul') || document.querySelector('.sidebar ul');
+    if (!navList) return;
+
+    // Ensure a standalone Users nav item exists
+    let usersLi = document.getElementById('usersNav');
+    if (!usersLi) {
+      usersLi = document.createElement('li');
+      usersLi.id = 'usersNav';
+      usersLi.style.display = 'none';
+      const a = document.createElement('a');
+      a.href = base + 'users.html';
+      const icon = document.createElement('span');
+      icon.className = 'icon';
+      icon.textContent = '👤';
+      const label = document.createElement('span');
+      label.className = 'label';
+      label.textContent = 'Users';
+      a.appendChild(icon);
+      a.appendChild(label);
+      usersLi.appendChild(a);
+      navList.appendChild(usersLi);
     }
-    // Ensure Users item exists for admin
-    const usersLink = ensureItem('Users', 'users.html', 'Users', { 'data-users-link': 'true' });
-    usersLink.classList.add('nav-users');
+
+    // Highlight active state when on users.html
+    const usersLink = usersLi.querySelector('a[href$="users.html"]');
+    if (usersLink) {
+      const isUsersPage = /\/users\.html$/i.test(location.pathname);
+      if (isUsersPage) usersLink.classList.add('active');
+    }
+
+    // Show for admin, hide otherwise
+    usersLi.style.display = isAdmin ? '' : 'none';
   }
 
   document.addEventListener('DOMContentLoaded', () => {

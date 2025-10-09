@@ -23,8 +23,7 @@ try {
     <link rel="stylesheet" href="inventory.css" />
     <link rel="stylesheet" href="reports.css" />
     <link rel="stylesheet" href="style.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Offline-only: removed external CDN scripts; exports use built-in fallbacks -->
   </head>
   <body>
     <div class="container">
@@ -75,6 +74,7 @@ try {
             <label for="fromDate">From</label>
             <input id="fromDate" type="date" />
           </div>
+
           <div class="range">
             <label for="toDate">To</label>
             <input id="toDate" type="date" />
@@ -96,6 +96,18 @@ try {
 
         <section class="report-section" id="sales-reports">
           <h2 class="section-title">Sales Reports</h2>
+          <div class="section-toolbar">
+            <div class="form-group">
+              <label for="category_sales">Category</label>
+              <select id="category_sales" class="section-dropdown" aria-label="Sales Category Filter">
+                <option value="all">All</option>
+                <option value="salesByProduct">Sales by Product</option>
+                <option value="salesByCategory">Sales by Category</option>
+                <option value="salesByEmployee">Sales by Employee</option>
+                <option value="paymentBreakdown">Payment Method Breakdown</option>
+              </select>
+            </div>
+          </div>
           <div class="cards">
             <div class="report-card"><div class="label">Total Revenue</div><div class="value" id="revTotal">₱0.00</div></div>
             <div class="report-card"><div class="label">Transactions</div><div class="value" id="txnCount">0</div></div>
@@ -137,6 +149,18 @@ try {
 
         <section class="report-section" id="inventory-reports">
           <h2 class="section-title">Inventory Reports</h2>
+          <div class="section-toolbar">
+            <div class="form-group">
+              <label for="category_inventory">Category</label>
+              <select id="category_inventory" class="section-dropdown" aria-label="Inventory Category Filter">
+                <option value="all">All</option>
+                <option value="stockLevels">Stock Levels</option>
+                <option value="lowStock">Low Stock Alerts</option>
+                <option value="inventoryValuation">Inventory Valuation</option>
+                <option value="stockMovement">Stock Movement</option>
+              </select>
+            </div>
+          </div>
           <div class="two-col">
             <div class="card-table">
               <header>Stock Levels</header>
@@ -173,6 +197,17 @@ try {
 
         <section class="report-section" id="financial-reports">
           <h2 class="section-title">Financial Reports</h2>
+          <div class="section-toolbar">
+            <div class="form-group">
+              <label for="category_financial">Category</label>
+              <select id="category_financial" class="section-dropdown" aria-label="Financial Category Filter">
+                <option value="all">All</option>
+                <option value="profitLoss">Profit & Loss Summary</option>
+                <option value="taxReports">Tax Reports</option>
+                <option value="refundsTable">Refunds & Discounts</option>
+              </select>
+            </div>
+          </div>
           <div class="cards">
             <div class="report-card"><div class="label">Profit & Loss</div><div class="value" id="pnl">₱0.00</div></div>
             <div class="report-card"><div class="label">Tax Collected</div><div class="value" id="taxCollected">₱0.00</div></div>
@@ -198,6 +233,17 @@ try {
 
         <section class="report-section" id="supplier-reports">
           <h2 class="section-title">Supplier Reports</h2>
+          <div class="section-toolbar">
+            <div class="form-group">
+              <label for="category_supplier">Category</label>
+              <select id="category_supplier" class="section-dropdown" aria-label="Supplier Category Filter">
+                <option value="all">All</option>
+                <option value="spendingBySupplier">Spending by Supplier</option>
+                <option value="spendingByCategory">Spending by Category</option>
+                <option value="supplierPerformance">Supplier Performance</option>
+              </select>
+            </div>
+          </div>
           <div class="cards">
             <div class="report-card"><div class="label">Total Suppliers</div><div class="value" id="totalSuppliers">0</div></div>
             <div class="report-card"><div class="label">Active Suppliers</div><div class="value" id="activeSuppliers">0</div></div>
@@ -230,6 +276,17 @@ try {
 
         <section class="report-section" id="customer-reports">
           <h2 class="section-title">Customer Reports</h2>
+          <div class="section-toolbar">
+            <div class="form-group">
+              <label for="category_customer">Category</label>
+              <select id="category_customer" class="section-dropdown" aria-label="Customer Category Filter">
+                <option value="all">All</option>
+                <option value="purchaseHistory">Purchase History</option>
+                <option value="loyalty">Loyalty Points / Rewards</option>
+                <option value="demographics">Customer Demographics</option>
+              </select>
+            </div>
+          </div>
           <div class="two-col">
             <div class="card-table">
               <header>Purchase History</header>
@@ -375,6 +432,113 @@ try {
             
             apply.addEventListener('click', renderAll);
             
+            // Section-specific category filtering functionality
+            const categoryFilters = {
+              'sales-reports': document.getElementById('category_sales'),
+              'inventory-reports': document.getElementById('category_inventory'),
+              'financial-reports': document.getElementById('category_financial'),
+              'supplier-reports': document.getElementById('category_supplier'),
+              'customer-reports': document.getElementById('category_customer')
+            };
+            
+            // Load saved category selections for all sections
+            function loadCategorySelections() {
+              Object.keys(categoryFilters).forEach(sectionId => {
+                const filter = categoryFilters[sectionId];
+                if (filter) {
+                  const savedCategory = localStorage.getItem(`selectedCategory_${sectionId}`) || 'all';
+                  filter.value = savedCategory;
+                  applySectionCategoryFilter(sectionId, savedCategory);
+                }
+              });
+            }
+            
+            // Save category selection for specific section
+            function saveCategorySelection(sectionId, category) {
+              localStorage.setItem(`selectedCategory_${sectionId}`, category);
+            }
+            
+            // Apply category filter to specific section
+            function applySectionCategoryFilter(sectionId, category) {
+              const section = document.getElementById(sectionId);
+              if (!section) return;
+              
+              let tables = {};
+              
+              // Define tables for each section
+              switch(sectionId) {
+                case 'sales-reports':
+                  tables = {
+                    'salesByProduct': section.querySelector('#salesByProduct')?.closest('.card-table'),
+                    'salesByCategory': section.querySelector('#salesByCategory')?.closest('.card-table'),
+                    'salesByEmployee': section.querySelector('#salesByEmployee')?.closest('.card-table'),
+                    'paymentBreakdown': section.querySelector('#paymentBreakdown')?.closest('.card-table')
+                  };
+                  break;
+                case 'inventory-reports':
+                  tables = {
+                    'stockLevels': section.querySelector('#stockLevels')?.closest('.card-table'),
+                    'lowStock': section.querySelector('#lowStock')?.closest('.card-table'),
+                    'inventoryValuation': section.querySelector('#inventoryValuation')?.closest('.card-table'),
+                    'stockMovement': section.querySelector('#stockMovement')?.closest('.card-table')
+                  };
+                  break;
+                case 'financial-reports':
+                  const profitLossCard = section.querySelector('.cards');
+                  tables = {
+                    'profitLoss': profitLossCard,
+                    'taxReports': section.querySelector('#taxReports')?.closest('.card-table'),
+                    'refundsTable': section.querySelector('#refundsTable')?.closest('.card-table')
+                  };
+                  break;
+                case 'supplier-reports':
+                  tables = {
+                    'spendingBySupplier': section.querySelector('#spendingBySupplier')?.closest('.card-table'),
+                    'spendingByCategory': section.querySelector('#spendingByCategory')?.closest('.card-table'),
+                    'supplierPerformance': section.querySelector('#supplierPerformance')?.closest('.card-table')
+                  };
+                  break;
+                case 'customer-reports':
+                  tables = {
+                    'purchaseHistory': section.querySelector('#purchaseHistory')?.closest('.card-table'),
+                    'loyalty': section.querySelector('#loyalty')?.closest('.card-table'),
+                    'demographics': section.querySelector('#demographics')?.closest('.card-table')
+                  };
+                  break;
+              }
+              
+              if (category === 'all') {
+                // Show all tables in this section
+                Object.values(tables).forEach(table => {
+                  if (table) table.style.display = '';
+                });
+              } else {
+                // Hide all tables first
+                Object.values(tables).forEach(table => {
+                  if (table) table.style.display = 'none';
+                });
+                // Show only selected table
+                if (tables[category]) {
+                  tables[category].style.display = '';
+                }
+              }
+            }
+            
+            // Add event listeners to all category filters
+            Object.keys(categoryFilters).forEach(sectionId => {
+              const filter = categoryFilters[sectionId];
+              if (filter) {
+                filter.addEventListener('change', (e) => {
+                  const selectedCategory = e.target.value;
+                  saveCategorySelection(sectionId, selectedCategory);
+                  applySectionCategoryFilter(sectionId, selectedCategory);
+                });
+              }
+            });
+            
+            // Initialize category filters
+            loadCategorySelections();
+            
             // Initialize date inputs from the default preset on first load
             preset.dispatchEvent(new Event('change'));
             // Report section navigation
@@ -415,33 +579,166 @@ try {
                 const activeSection = document.querySelector('.report-section.active');
                 const sectionTitle = activeSection ? activeSection.querySelector('.section-title').textContent : 'Reports';
                 
-                // Get the data from the active section
-                const tables = activeSection ? activeSection.querySelectorAll('table') : [];
-                let exportData = [];
+                if (!activeSection) {
+                  alert('No active report section found');
+                  return;
+                }
                 
-                tables.forEach(table => {
-                  const tableHeader = table.closest('.card-table').querySelector('header').textContent;
-                  const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent);
-                  const rows = Array.from(table.querySelectorAll('tbody tr')).map(tr => {
-                    return Array.from(tr.querySelectorAll('td')).map(td => td.textContent);
-                  });
+                const sectionId = activeSection.id;
+                const categoryFilter = categoryFilters[sectionId];
+                
+                if (categoryFilter) {
+                  const selectedCategory = categoryFilter.value;
                   
-                  if (rows.length > 0 && !rows[0][0].includes('No data')) {
-                    exportData.push({ title: tableHeader, headers, rows });
-                  }
-                });
-                
-                // Export based on type
-                if (exportData.length > 0) {
-                  if (type === 'csv') {
-                    exportAsCSV(exportData, sectionTitle);
-                  } else if (type === 'xlsx') {
-                    exportAsExcel(exportData, sectionTitle);
-                  } else if (type === 'pdf') {
-                    exportAsPDF(exportData, sectionTitle);
+                  if (selectedCategory === 'all') {
+                    // Export all visible tables in the section
+                    const tables = activeSection.querySelectorAll('table');
+                    let exportData = [];
+                    
+                    tables.forEach(table => {
+                      const tableContainer = table.closest('.card-table');
+                      if (tableContainer && tableContainer.style.display !== 'none') {
+                        const tableHeader = tableContainer.querySelector('header').textContent;
+                        const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent);
+                        const rows = Array.from(table.querySelectorAll('tbody tr')).map(tr => {
+                          return Array.from(tr.querySelectorAll('td')).map(td => td.textContent);
+                        });
+                        
+                        if (rows.length > 0 && !rows[0][0].includes('No data')) {
+                          exportData.push({ title: tableHeader, headers, rows });
+                        }
+                      }
+                    });
+                    
+                    // Handle financial reports cards separately
+                    if (sectionId === 'financial-reports') {
+                      const cards = activeSection.querySelector('.cards');
+                      if (cards && cards.style.display !== 'none') {
+                        const cardData = Array.from(cards.querySelectorAll('.report-card')).map(card => {
+                          const label = card.querySelector('.label').textContent;
+                          const value = card.querySelector('.value').textContent;
+                          return [label, value];
+                        });
+                        
+                        if (cardData.length > 0) {
+                          exportData.unshift({ 
+                            title: 'Profit & Loss Summary', 
+                            headers: ['Metric', 'Value'], 
+                            rows: cardData 
+                          });
+                        }
+                      }
+                    }
+                    
+                    const exportTitle = `${sectionTitle} - All Categories`;
+                    
+                    if (exportData.length > 0) {
+                      if (type === 'csv') {
+                        exportAsCSV(exportData, exportTitle);
+                      } else if (type === 'xlsx') {
+                        exportAsExcel(exportData, exportTitle);
+                      } else if (type === 'pdf') {
+                        exportAsPDF(exportData, exportTitle);
+                      }
+                    } else {
+                      alert('No data to export');
+                    }
+                  } else {
+                    // Export only the selected category
+                    let tableElement = null;
+                    let tableHeader = '';
+                    
+                    if (selectedCategory === 'profitLoss' && sectionId === 'financial-reports') {
+                      // Handle Profit & Loss Summary cards
+                      const cards = activeSection.querySelector('.cards');
+                      if (cards && cards.style.display !== 'none') {
+                        const cardData = Array.from(cards.querySelectorAll('.report-card')).map(card => {
+                          const label = card.querySelector('.label').textContent;
+                          const value = card.querySelector('.value').textContent;
+                          return [label, value];
+                        });
+                        
+                        const exportData = [{ 
+                          title: 'Profit & Loss Summary', 
+                          headers: ['Metric', 'Value'], 
+                          rows: cardData 
+                        }];
+                        
+                        if (type === 'csv') {
+                          exportAsCSV(exportData, 'Profit & Loss Summary');
+                        } else if (type === 'xlsx') {
+                          exportAsExcel(exportData, 'Profit & Loss Summary');
+                        } else if (type === 'pdf') {
+                          exportAsPDF(exportData, 'Profit & Loss Summary');
+                        }
+                        return;
+                      }
+                    } else {
+                      // Handle regular table exports
+                      tableElement = activeSection.querySelector(`#${selectedCategory}`);
+                      if (tableElement) {
+                        const tableContainer = tableElement.closest('.card-table');
+                        if (tableContainer && tableContainer.style.display !== 'none') {
+                          tableHeader = tableContainer.querySelector('header').textContent;
+                        }
+                      }
+                    }
+                    
+                    if (!tableElement) {
+                      alert('No table found for selected category');
+                      return;
+                    }
+                    
+                    const headers = Array.from(tableElement.querySelectorAll('thead th')).map(th => th.textContent);
+                    const rows = Array.from(tableElement.querySelectorAll('tbody tr')).map(tr => {
+                      return Array.from(tr.querySelectorAll('td')).map(td => td.textContent);
+                    });
+                    
+                    if (rows.length > 0 && !rows[0][0].includes('No data')) {
+                      const exportData = [{ title: tableHeader, headers, rows }];
+                      
+                      if (type === 'csv') {
+                        exportAsCSV(exportData, tableHeader);
+                      } else if (type === 'xlsx') {
+                        exportAsExcel(exportData, tableHeader);
+                      } else if (type === 'pdf') {
+                        exportAsPDF(exportData, tableHeader);
+                      }
+                    } else {
+                      alert('No data to export for selected category');
+                    }
                   }
                 } else {
-                  alert('No data to export');
+                  // Fallback for sections without category filters
+                  const tables = activeSection.querySelectorAll('table');
+                  let exportData = [];
+                  
+                  tables.forEach(table => {
+                    const tableContainer = table.closest('.card-table');
+                    if (tableContainer) {
+                      const tableHeader = tableContainer.querySelector('header').textContent;
+                      const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent);
+                      const rows = Array.from(table.querySelectorAll('tbody tr')).map(tr => {
+                        return Array.from(tr.querySelectorAll('td')).map(td => td.textContent);
+                      });
+                      
+                      if (rows.length > 0 && !rows[0][0].includes('No data')) {
+                        exportData.push({ title: tableHeader, headers, rows });
+                      }
+                    }
+                  });
+                  
+                  if (exportData.length > 0) {
+                    if (type === 'csv') {
+                      exportAsCSV(exportData, sectionTitle);
+                    } else if (type === 'xlsx') {
+                      exportAsExcel(exportData, sectionTitle);
+                    } else if (type === 'pdf') {
+                      exportAsPDF(exportData, sectionTitle);
+                    }
+                  } else {
+                    alert('No data to export');
+                  }
                 }
               });
             });
@@ -473,117 +770,116 @@ try {
               document.body.removeChild(link);
             }
 
-            // Function to export as Excel using SheetJS
+            // Function to export as Excel (offline)
             function exportAsExcel(data, sectionTitle) {
-              const wb = XLSX.utils.book_new();
-              
-              data.forEach(table => {
-                const wsData = [table.headers, ...table.rows];
-                const ws = XLSX.utils.aoa_to_sheet(wsData);
-                
-                // Ensure peso symbol in cells remains as text and provide number format for currency columns
-                const range = XLSX.utils.decode_range(ws['!ref']);
-                for (let R = range.s.r; R <= range.e.r; ++R) {
+              if (window.XLSX && XLSX.utils && XLSX.writeFile) {
+                const wb = XLSX.utils.book_new();
+                data.forEach(table => {
+                  const wsData = [table.headers, ...table.rows];
+                  const ws = XLSX.utils.aoa_to_sheet(wsData);
+                  const range = XLSX.utils.decode_range(ws['!ref']);
+                  const colWidths = [];
                   for (let C = range.s.c; C <= range.e.c; ++C) {
-                    const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
-                    if (!cell) continue;
-                    if (R === 0) {
-                      cell.s = { font: { bold: true }, fill: { fgColor: { rgb: "E2E8F0" } }, alignment: { horizontal: "center" } };
+                    let maxWidth = 0;
+                    for (let R = range.s.r; R <= range.e.r; ++R) {
+                      const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+                      if (cell && cell.v) { maxWidth = Math.max(maxWidth, String(cell.v).length); }
                     }
-                    // If the cell value looks like a currency string with ₱, keep as string to preserve symbol,
-                    // alternatively set a number format if you are writing numbers without symbol.
-                    if (cell.v && typeof cell.v === 'string' && cell.v.trim().startsWith('₱')) {
-                      cell.t = 's';
-                    }
+                    colWidths.push({ wch: Math.min(Math.max(maxWidth + 2, 10), 50) });
                   }
-                }
-                
-                // Auto-size columns
-                const colWidths = [];
-                for (let C = range.s.c; C <= range.e.c; ++C) {
-                  let maxWidth = 0;
-                  for (let R = range.s.r; R <= range.e.r; ++R) {
-                    const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
-                    if (cell && cell.v) {
-                      maxWidth = Math.max(maxWidth, String(cell.v).length);
-                    }
-                  }
-                  colWidths.push({ wch: Math.min(Math.max(maxWidth + 2, 10), 50) });
-                }
-                ws['!cols'] = colWidths;
-                
-                const safeSheetName = table.title.replace(/[:\\\/?*[\]]/g, '_').substring(0, 31);
-                XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
+                  ws['!cols'] = colWidths;
+                  const safeSheetName = table.title.replace(/[:\\\/?*[\]]/g, '_').substring(0, 31);
+                  XLSX.utils.book_append_sheet(wb, ws, safeSheetName);
+                });
+                const filename = `${sectionTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                XLSX.writeFile(wb, filename);
+                return;
+              }
+              // Fallback: generate an Excel-friendly HTML file
+              let html = '<html><head><meta charset="utf-8"><style>table{border-collapse:collapse} th,td{border:1px solid #999;padding:6px;font-size:12px} thead{background:#eee}</style></head><body>';
+              html += `<h1>${sectionTitle}</h1>`;
+              data.forEach(table => {
+                html += `<h2>${table.title}</h2><table><thead><tr>`;
+                table.headers.forEach(h => { html += `<th>${h}</th>`; });
+                html += '</tr></thead><tbody>';
+                table.rows.forEach(row => {
+                  html += '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+                });
+                html += '</tbody></table><br/>';
               });
-              
-              const filename = `${sectionTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-              XLSX.writeFile(wb, filename);
+              html += '</body></html>';
+              const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `${sectionTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xls`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
             }
 
-           // Function to export as PDF using jsPDF
+           // Function to export as PDF (offline)
            function exportAsPDF(data, sectionTitle) {
-             const { jsPDF } = window.jspdf;
-             const doc = new jsPDF();
-             
-             // Use a built-in font that supports basic Unicode; ensure we write literal ₱ in strings
-             doc.setFont('helvetica');
-             
-             let yPosition = 20;
-             const pageWidth = doc.internal.pageSize.getWidth();
-             
-             data.forEach((table, tableIndex) => {
-               doc.setFontSize(16);
-               doc.setFont(undefined, 'bold');
-               doc.setTextColor(41, 128, 185);
-               doc.text(table.title, pageWidth / 2, yPosition, { align: 'center' });
-               yPosition += 10;
-               
-               doc.setFontSize(12);
-               doc.setFont(undefined, 'normal');
-               doc.setTextColor(100, 100, 100);
-               doc.text(`Report: ${sectionTitle}`, pageWidth / 2, yPosition, { align: 'center' });
-               yPosition += 10;
-               
-               doc.setFontSize(10);
-               doc.setTextColor(150, 150, 150);
-               const today = new Date().toLocaleDateString();
-               doc.text(`Date: ${today}`, 14, yPosition);
-               yPosition += 6;
-               
-               // Table headers
-               doc.setFontSize(11);
-               doc.setTextColor(0,0,0);
-               let x = 14;
-               table.headers.forEach(h => {
-                 doc.text(String(h), x, yPosition);
-                 x += 60; // simplistic column width
-               });
-               yPosition += 6;
-               
-               // Rows
-               table.rows.forEach(row => {
-                 x = 14;
-                 row.forEach(cell => {
-                   // Ensure the peso symbol is written literally; jsPDF expects UTF-8 strings from the browser
-                   doc.text(String(cell), x, yPosition);
-                   x += 60;
-                 });
+             if (window.jspdf && window.jspdf.jsPDF) {
+               const { jsPDF } = window.jspdf;
+               const doc = new jsPDF();
+               doc.setFont('helvetica');
+               let yPosition = 20;
+               const pageWidth = doc.internal.pageSize.getWidth();
+               data.forEach((table, tableIndex) => {
+                 doc.setFontSize(16);
+                 doc.setFont(undefined, 'bold');
+                 doc.setTextColor(41, 128, 185);
+                 doc.text(table.title, pageWidth / 2, yPosition, { align: 'center' });
+                 yPosition += 10;
+                 doc.setFontSize(12);
+                 doc.setFont(undefined, 'normal');
+                 doc.setTextColor(100, 100, 100);
+                 doc.text(`Report: ${sectionTitle}`, pageWidth / 2, yPosition, { align: 'center' });
+                 yPosition += 10;
+                 doc.setFontSize(10);
+                 doc.setTextColor(150, 150, 150);
+                 const today = new Date().toLocaleDateString();
+                 doc.text(`Date: ${today}`, 14, yPosition);
                  yPosition += 6;
-                 if (yPosition > doc.internal.pageSize.getHeight() - 20) {
-                   doc.addPage();
-                   yPosition = 20;
-                 }
+                 doc.setFontSize(11);
+                 doc.setTextColor(0,0,0);
+                 let x = 14;
+                 table.headers.forEach(h => { doc.text(String(h), x, yPosition); x += 60; });
+                 yPosition += 6;
+                 table.rows.forEach(row => {
+                   x = 14;
+                   row.forEach(cell => { doc.text(String(cell), x, yPosition); x += 60; });
+                   yPosition += 6;
+                   if (yPosition > doc.internal.pageSize.getHeight() - 20) { doc.addPage(); yPosition = 20; }
+                 });
+                 yPosition += 10;
+                 if (yPosition > doc.internal.pageSize.getHeight() - 20 && tableIndex < data.length - 1) { doc.addPage(); yPosition = 20; }
                });
-               
-               yPosition += 10;
-               if (yPosition > doc.internal.pageSize.getHeight() - 20 && tableIndex < data.length - 1) {
-                 doc.addPage();
-                 yPosition = 20;
-               }
+               const filename = `${sectionTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
+               doc.save(filename);
+               return;
+             }
+             // Fallback: open print-friendly view and let user "Save as PDF"
+             const win = window.open('', '_blank');
+             const style = 'body{font-family: Arial, sans-serif;color:#000;padding:16px} h1{font-size:20px} h2{margin:12px 0;font-size:16px} table{border-collapse:collapse;width:100%} th,td{border:1px solid #999;padding:6px;font-size:12px} thead{background:#eee}';
+             let html = `<html><head><meta charset="utf-8"><title>${sectionTitle}</title><style>${style}</style></head><body>`;
+             html += `<h1>${sectionTitle}</h1>`;
+             data.forEach(table => {
+               html += `<h2>${table.title}</h2><table><thead><tr>`;
+               table.headers.forEach(h => { html += `<th>${h}</th>`; });
+               html += `</tr></thead><tbody>`;
+               table.rows.forEach(row => {
+                 html += '<tr>' + row.map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+               });
+               html += `</tbody></table><br/>`;
              });
-             
-             const filename = `${sectionTitle.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`;
-             doc.save(filename);
+             html += '</body></html>';
+             win.document.open();
+             win.document.write(html);
+             win.document.close();
+             win.focus();
+             win.print();
            }
 
             async function getStockMovements() {
@@ -682,6 +978,23 @@ try {
               `).join('');
             }
 
+            // Fallback: derive simple product stock snapshot from movements when product catalog is empty
+            function deriveProductsFromMovements(rows) {
+              const map = {};
+              (rows || []).forEach(r => {
+                const name = r.product;
+                if (!name) return;
+                const qty = parseInt(r.qty) || 0;
+                if (!map[name]) {
+                  map[name] = { name, stock: 0, reorder_point: 0, category: r.category || undefined };
+                }
+                if (r.type === 'IN') map[name].stock += qty;
+                else if (r.type === 'OUT') map[name].stock -= qty;
+                if (!map[name].category && r.category) map[name].category = r.category;
+              });
+              return Object.values(map);
+            }
+
             // New: products fetcher and stock level renderers
             async function getProducts() {
               try {
@@ -708,11 +1021,11 @@ try {
               if (!body) return;
               const items = (products || []).filter(p => {
                 const stock = Number(p.stock || 0);
-                const rp = (p.reorder_point != null) ? Number(p.reorder_point) : 0;
-                return rp > 0 && stock <= rp;
+                const rp = (p.reorder_point != null && Number(p.reorder_point) > 0) ? Number(p.reorder_point) : 15; // default threshold fallback
+                return stock <= rp;
               }).map(p => {
                 const stock = Number(p.stock || 0);
-                const rp = Number(p.reorder_point || 0);
+                const rp = (p.reorder_point != null && Number(p.reorder_point) > 0) ? Number(p.reorder_point) : 15;
                 const needed = Math.max(0, rp - stock);
                 return `
                   <tr>
@@ -938,8 +1251,10 @@ try {
               if (card) card.textContent = fmtPeso(total);
             }
             async function renderAll() {
-              const [allRows, suppliers, products] = await Promise.all([getStockMovements(), getSuppliers(), getProducts()]);
+              const [allRows, suppliers, productsRaw] = await Promise.all([getStockMovements(), getSuppliers(), getProducts()]);
               const rows = (allRows || []).filter(r => inRange(r.date, from?.value, to?.value)).sort((a, b) => new Date(b.date) - new Date(a.date));
+              let products = productsRaw || [];
+              if (!products.length) { products = deriveProductsFromMovements(rows); }
               renderStockMovement(rows);
               renderInventoryValuation(rows);
               renderStockLevels(products || []);

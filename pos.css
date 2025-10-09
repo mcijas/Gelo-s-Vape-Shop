@@ -1,7 +1,7 @@
 @import url("inventory.css");
 
-/* Ensure base background matches app */
-html, body { background: #111; color: #fff; }
+/* Ensure base background matches system theme via global variables */
+html, body { background: var(--bg); color: var(--text); }
 
 /* POS page layout aligned with dashboard/inventory */
 .pos-content { gap: 16px; }

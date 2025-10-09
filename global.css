@@ -14,6 +14,26 @@ body {
   font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
 }
 
+/* System theme support */
+:root {
+  --bg: #ffffff;
+  --text: #111111;
+  --border: #dddddd;
+  --submenu-bg: #f4f4f4;
+  --submenu-hover-bg: #e9e9e9;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111111;
+    --text: #ffffff;
+    --border: #333333;
+    --submenu-bg: #1f1f1f;
+    --submenu-hover-bg: #262626;
+  }
+}
+html { color-scheme: light dark; background: var(--bg); color: var(--text); }
+body { background: var(--bg); color: var(--text); }
+
 button:focus-visible {
   outline: 2px solid #4a90e2 !important;
   outline: -webkit-focus-ring-color auto 5px !important;
@@ -46,8 +66,8 @@ img {
   list-style: none;
   margin: 6px 0 0 34px;
   padding: 0;
-  background: #1f1f1f;
-  border: 1px solid #333;
+  background: var(--submenu-bg);
+  border: 1px solid var(--border);
   border-radius: 8px;
   display: block;
   max-height: 0;
@@ -69,7 +89,7 @@ img {
 }
 
 .sidebar .submenu li a:hover {
-  background: #262626;
+  background: var(--submenu-hover-bg);
 }
 
 .sidebar .has-submenu:hover > .submenu {
