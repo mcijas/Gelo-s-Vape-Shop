@@ -978,6 +978,29 @@ try {
               `).join('');
             }
 
+            // Render Financial Cards: Profit & Loss and Tax Collected, plus Tax Reports table
+            function renderFinancialCards(txns, refunds, stockRows) {
+              const grossRev = (txns||[]).reduce((s,t)=> s + (parseFloat(t.total)||0), 0);
+              const refundTotal = (refunds||[]).reduce((s,r)=> s + (parseFloat(r.refund_amount)||0), 0);
+              const netRev = Math.max(0, grossRev - refundTotal);
+              const vatRate = 0.12;
+              const taxCollected = netRev * (vatRate / (1 + vatRate));
+              const purchaseCost = (stockRows||[]).filter(r=> r.type === 'IN')
+                .reduce((s,r)=> s + ((parseInt(r.qty)||0) * (parseFloat(r.unitCost)||0)), 0);
+              const pnl = netRev - purchaseCost;
+
+              const pnlEl = document.getElementById('pnl');
+              const taxEl = document.getElementById('taxCollected');
+              if (pnlEl) pnlEl.textContent = fmtPeso(pnl);
+              if (taxEl) taxEl.textContent = fmtPeso(taxCollected);
+
+              const taxBody = document.getElementById('taxReports');
+              if (taxBody) {
+                const rows = [`<tr><td>VAT (12%)</td><td>${fmtPeso(netRev)}</td><td>${fmtPeso(taxCollected)}</td></tr>`];
+                taxBody.innerHTML = rows.join('');
+              }
+            }
+
             // Fallback: derive simple product stock snapshot from movements when product catalog is empty
             function deriveProductsFromMovements(rows) {
               const map = {};
@@ -1270,6 +1293,7 @@ try {
               const refunds = (allRefunds || []).filter(r => inRange(r.refund_date, from?.value, to?.value));
               renderSalesSections(txns, refunds, products || []);
               renderRefundsTable(refunds);
+              renderFinancialCards(txns, refunds, rows);
 
               // Operational
               const [shifts, voids, hours] = await Promise.all([

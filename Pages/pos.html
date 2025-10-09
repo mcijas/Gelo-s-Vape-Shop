@@ -494,59 +494,51 @@
         // Printer Settings Dialog
         function showPrinterSettings() {
           const currentWidth = localStorage.getItem('pos_receipt_width') || '58mm';
-          const useQZTray = localStorage.getItem('pos_use_qztray') !== 'false';
           const storeInfo = JSON.parse(localStorage.getItem('store_info') || '{}');
           
           const dialog = document.createElement('div');
+          const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
           dialog.style.cssText = `
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.5); z-index: 9999; display: flex; 
+            background: ${isDark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.45)'}; z-index: 9999; display: flex; 
             align-items: center; justify-content: center;
           `;
           
           dialog.innerHTML = `
-            <div style="background: white; padding: 24px; border-radius: 12px; max-width: 500px; width: 90%;">
-              <h3 style="margin: 0 0 20px 0; color: #333;">🖨️ Printer Settings</h3>
+            <div style="background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 24px; border-radius: 12px; max-width: 500px; width: 90%;">
+              <h3 style="margin: 0 0 20px 0; color: var(--text);">🖨️ Printer Settings</h3>
               
               <div style="margin-bottom: 16px;">
                 <label style="display: block; margin-bottom: 8px; font-weight: 600;">Receipt Width:</label>
-                <select id="receiptWidth" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                <select id="receiptWidth" style="width: 100%; padding: 8px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px;">
                   <option value="58mm" ${currentWidth === '58mm' ? 'selected' : ''}>58mm (XP-58IIH)</option>
                   <option value="80mm" ${currentWidth === '80mm' ? 'selected' : ''}>80mm (Standard)</option>
                 </select>
               </div>
               
               <div style="margin-bottom: 16px;">
-                <label style="display: flex; align-items: center; gap: 8px;">
-                  <input type="checkbox" id="useQZTray" ${useQZTray ? 'checked' : ''}>
-                  <span>Use QZ Tray for automatic printing</span>
-                </label>
-                <small style="color: #666; margin-left: 24px;">Requires QZ Tray software installed</small>
-              </div>
-              
-              <div style="margin-bottom: 16px;">
                 <label style="display: block; margin-bottom: 8px; font-weight: 600;">Store Name:</label>
                 <input type="text" id="storeName" value="${storeInfo.name || "Gelo's Vape Shop"}" 
-                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                       style="width: 100%; padding: 8px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px;">
               </div>
               
               <div style="margin-bottom: 16px;">
                 <label style="display: block; margin-bottom: 8px; font-weight: 600;">Store Address:</label>
                 <input type="text" id="storeAddress" value="${storeInfo.address || ''}" 
-                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                       style="width: 100%; padding: 8px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px;">
               </div>
               
               <div style="margin-bottom: 20px;">
                 <label style="display: block; margin-bottom: 8px; font-weight: 600;">Store Phone:</label>
                 <input type="text" id="storePhone" value="${storeInfo.phone || ''}" 
-                       style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px;">
+                       style="width: 100%; padding: 8px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px;">
               </div>
               
               <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button id="cancelSettings" style="padding: 8px 16px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer;">Cancel</button>
+                <button id="cancelSettings" style="padding: 8px 16px; border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 6px; cursor: pointer;">Cancel</button>
                 <button id="saveSettings" style="padding: 8px 16px; border: none; background: #2563eb; color: white; border-radius: 6px; cursor: pointer;">Save Settings</button>
               </div>
-            </div>
+              </div>
           `;
           
           document.body.appendChild(dialog);
@@ -555,13 +547,11 @@
           dialog.querySelector('#cancelSettings').onclick = () => dialog.remove();
           dialog.querySelector('#saveSettings').onclick = () => {
             const width = dialog.querySelector('#receiptWidth').value;
-            const qzTray = dialog.querySelector('#useQZTray').checked;
             const name = dialog.querySelector('#storeName').value.trim();
             const address = dialog.querySelector('#storeAddress').value.trim();
             const phone = dialog.querySelector('#storePhone').value.trim();
             
             localStorage.setItem('pos_receipt_width', width);
-            localStorage.setItem('pos_use_qztray', qzTray ? 'true' : 'false');
             localStorage.setItem('store_info', JSON.stringify({ name, address, phone }));
             
             // Update receipt CSS width
@@ -606,25 +596,12 @@
 
         // Test receipt function
         function showTestReceipt() {
-          const testTransaction = {
-            id: 'TEST-' + Date.now(),
-            ref: 'TEST-001',
-            date: new Date().toISOString(),
-            items: [
-              { product: 'GeekVape Aegis Pod 2', qty: 1, price: 1100.00, category: 'pod' },
-              { product: 'NeXim Disposable', qty: 2, price: 350.00, category: 'disposable' },
-              { product: 'RELX Pod Pro Infinity', qty: 1, price: 190.00, category: 'pod' }
-            ],
-            total: 1990.00,
-            paymentMethod: 'Cash',
-            cashier: 'Test User',
-            customer: 'Walk-in',
-            discount: 0
-          };
+          // Get the receipt width setting for the URL parameter
+          const receiptWidth = localStorage.getItem('pos_receipt_width') || '58mm';
           
-          // Open the window synchronously during the user gesture to avoid mobile popup blocking
-          const win = window.open('', '_blank', 'width=380,height=740,noopener,noreferrer');
-          printReceipt(testTransaction, win);
+          // Open the receipt.php file with width parameter and autoprint
+          const receiptUrl = `../receipt.php?width=${receiptWidth}&autoprint=true&test=true`;
+          window.open(receiptUrl, '_blank', 'width=380,height=740');
         }
 
         async function voidCart() {
@@ -737,8 +714,7 @@
 
         async function checkout(paymentMethod) {
           if (!cart.size) { alert('Cart is empty'); return; }
-          // Open the receipt window synchronously before any awaits to avoid mobile popup blocking
-          const receiptWin = window.open('', '_blank', 'width=380,height=740,noopener,noreferrer');
+          
           let total = 0; const items = [];
           for (const [code, item] of cart) {
             total += item.price * item.qty;
@@ -787,16 +763,17 @@
             });
             const data = await res.json();
             if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to save transaction');
-            // Print receipt using DB id and ref from server
+            
+            // Get receipt width setting and open receipt.php with transaction data
+            const receiptWidth = localStorage.getItem('pos_receipt_width') || '58mm';
             const receiptTxn = { ...txn, id: data.id || txn.id, ref: data.ref || txn.id };
             
-            // Try QZ Tray first, fallback to browser print
-            const useQZTray = localStorage.getItem('pos_use_qztray') !== 'false'; // Default to true
-            if (useQZTray && qzReady) {
-              printViaQZTray(receiptTxn);
-            } else {
-              printReceipt(receiptTxn, receiptWin);
-            }
+            // Store transaction data temporarily for receipt.php to access
+            sessionStorage.setItem('current_receipt_data', JSON.stringify(receiptTxn));
+            
+            // Open receipt.php with parameters
+            const receiptUrl = `../receipt.php?width=${receiptWidth}&autoprint=true&txn_id=${receiptTxn.id}`;
+            window.open(receiptUrl, '_blank', 'width=380,height=740');
 
             // Mirror to localStorage to keep other pages (customers/reports) working
             try {
@@ -957,8 +934,28 @@
           const storePhone = storeInfo.phone || '';
           const storeEmail = storeInfo.email || '';
 
-          win = win || window.open('', '_blank', 'width=380,height=740,noopener,noreferrer');
+          // Respect saved receipt width in the about:blank print window
+          const receiptWidth = localStorage.getItem('pos_receipt_width') || '58mm';
+          const widthCss = receiptWidth === '80mm'
+            ? `
+                .receipt { width: 80mm; max-width: 300px; }
+                @page { size: 80mm auto; }
+                .item-row .item-name { flex: 1.5; }
+                .item-row .item-qty { width: 40px; }
+                .item-row .item-price { width: 80px; }
+                .items-header .col-item { flex: 1.5; }
+                .items-header .col-qty { width: 40px; }
+                .items-header .col-price { width: 80px; }
+              `
+            : `
+                .receipt { width: 58mm; max-width: 220px; }
+                @page { size: 58mm auto; }
+              `;
+
+          win = win || window.open('', '_blank', 'width=380,height=740,noopener');
           if (!win) return;
+          // Explicitly open the document to avoid blank content in certain browsers
+          try { win.document.open(); } catch {}
           win.document.write(`
             <html>
             <head>
@@ -969,7 +966,7 @@
               <style>
                 *{ box-sizing:border-box }
                 body{ margin:0; background:#fff; color:#000; font: 11px/1.3 'Courier New', Courier, monospace; }
-                .receipt{ width:58mm; max-width:220px; margin:0 auto; padding:4mm 2mm; }
+                .receipt{ margin:0 auto; padding:4mm 2mm; }
                 .header{ text-align:center; margin-bottom:8px; }
                 .header .logo{ display:block; width:40px; height:auto; margin:0 auto 3px; }
                 .header .store{ font-weight:700; font-size:13px; margin-bottom:2px; }
@@ -993,7 +990,8 @@
                 .footer{ text-align:center; margin-top:8px; font-size:10px; }
                 .print-actions{ display:flex; gap:8px; margin-top:10px; }
                 .btn{ flex:1; border:1px solid #000; background:#fff; padding:6px 8px; cursor:pointer; font-size:11px; }
-                @page { size: 58mm auto; margin: 2mm; }
+                @page { margin: 2mm; }
+                ${widthCss}
                 @media print{ 
                   .print-actions{ display:none !important; }
                   body{ font-size:10px; }
@@ -1062,8 +1060,13 @@
             </html>
           `);
           win.document.close();
-          // Ensure mobile browsers trigger print after content loads
-          setTimeout(() => { try { win.focus(); win.print(); } catch {} }, 250);
+          // Trigger print when the new window finishes loading
+          try {
+            win.addEventListener('load', () => { try { win.focus(); win.print(); } catch {} });
+          } catch {
+            // Fallback in case 'load' listener isn't available
+            setTimeout(() => { try { win.focus(); win.print(); } catch {} }, 300);
+          }
         }
 
         // Product cards are now created dynamically with event listeners
@@ -1204,10 +1207,6 @@
 
         render();
         
-        // Initialize QZ Tray on page load
-        setTimeout(() => {
-          initQZTray();
-        }, 1000); // Give QZ Tray script time to load
       })();
     </script>
   </body>
