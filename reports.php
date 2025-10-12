@@ -314,6 +314,17 @@ try {
 
         <section class="report-section" id="operational-reports">
           <h2 class="section-title">Operational Reports</h2>
+          <div class="section-toolbar">
+            <div class="form-group">
+              <label for="category_operational">Category</label>
+              <select id="category_operational" class="section-dropdown" aria-label="Operational Category Filter">
+                <option value="all" selected>All</option>
+                <option value="shiftReports">Shift Reports / Z-Reports</option>
+                <option value="voids">Returned / Refunded products</option>
+                <option value="staffHours">Staff Hours</option>
+              </select>
+            </div>
+          </div>
           <div class="two-col">
             <div class="card-table">
               <header>Shift Reports / Z-Reports</header>
@@ -438,7 +449,8 @@ try {
               'inventory-reports': document.getElementById('category_inventory'),
               'financial-reports': document.getElementById('category_financial'),
               'supplier-reports': document.getElementById('category_supplier'),
-              'customer-reports': document.getElementById('category_customer')
+              'customer-reports': document.getElementById('category_customer'),
+              'operational-reports': document.getElementById('category_operational')
             };
             
             // Load saved category selections for all sections
@@ -503,6 +515,13 @@ try {
                     'purchaseHistory': section.querySelector('#purchaseHistory')?.closest('.card-table'),
                     'loyalty': section.querySelector('#loyalty')?.closest('.card-table'),
                     'demographics': section.querySelector('#demographics')?.closest('.card-table')
+                  };
+                  break;
+                case 'operational-reports':
+                  tables = {
+                    'shiftReports': section.querySelector('#shiftReports')?.closest('.card-table'),
+                    'voids': section.querySelector('#voids')?.closest('.card-table'),
+                    'staffHours': section.querySelector('#staffHours')?.closest('.card-table')
                   };
                   break;
               }
@@ -1374,6 +1393,7 @@ try {
                 const label = `${s.employee_name || '—'} — ${new Date(s.started_at).toLocaleString()}${s.ended_at ? (' to ' + new Date(s.ended_at).toLocaleString()) : ' (open)'}`;
                 const salesCell = `
                   <div>Sales (completed): ${fmtPeso(salesTotal)} (${txnCount} txns)</div>
+                  <div style="opacity:0.85">Cash: ${fmtPeso(cashSales)} · Non-cash: ${fmtPeso(Math.max(0, (parseFloat(salesTotal)||0) - (parseFloat(cashSales)||0)))} </div>
                   <div>Refunds: -${fmtPeso(refundTotal)} (${refundCount})</div>
                   <div>Purchases: ${fmtPeso(purchaseCost)} (${purchaseItems} items)</div>
                 `;
