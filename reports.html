@@ -1049,6 +1049,51 @@
               return Object.values(map);
             }
 
+            // Auto-assign reorder points and low stock alert
+            function autoAssignReorderPoint(products) {
+              return (products || []).map(p => {
+                const stock = Number(p.stock || 0);
+                const rp = Number(p.reorder_point || 0);
+                if (!rp || rp <= 0) {
+                  let assigned = 15;
+                  if (stock <= 2) assigned = 5;
+                  else if (stock <= 5) assigned = 10;
+                  else assigned = 15;
+                  return { ...p, reorder_point: assigned };
+                }
+                return p;
+              });
+            }
+            function showLowStockMessages(products) {
+              try {
+                const body = document.getElementById('lowStock');
+                if (!body) return;
+                const card = body.closest('.card');
+                if (!card) return;
+                let notice = card.querySelector('.low-stock-notice');
+                if (!notice) {
+                  notice = document.createElement('div');
+                  notice.className = 'low-stock-notice';
+                  notice.style.margin = '8px 0';
+                  notice.style.padding = '8px 12px';
+                  notice.style.borderRadius = '8px';
+                  notice.style.background = '#2b2b2b';
+                  notice.style.color = '#ffd399';
+                  notice.style.border = '1px solid #3a3a3a';
+                  notice.style.fontSize = '0.9rem';
+                  notice.style.display = 'block';
+                  card.insertBefore(notice, card.querySelector('table'));
+                }
+                const alerts = (products || []).filter(p => Number(p.stock || 0) <= Number(p.reorder_point || 0));
+                if (!alerts.length) {
+                  notice.textContent = 'All items are above reorder points.';
+                  return;
+                }
+                const list = alerts.slice(0, 10).map(p => `${p.name} (${Number(p.stock || 0)} ≤ RP ${Number(p.reorder_point || 0)})`).join(', ');
+                notice.textContent = `Low stock: ${list}${alerts.length > 10 ? ' and ' + (alerts.length - 10) + ' more.' : ''} Please restock these items.`;
+              } catch (e) {}
+            }
+
             // Products fetcher and stock level renderers
             async function getProducts() {
               try {
@@ -1192,8 +1237,10 @@
               const productsRaw = await getProducts();
               let products = productsRaw || [];
               if (!products.length) { products = deriveProductsFromMovements(rows); }
+              products = autoAssignReorderPoint(products);
               renderStockLevels(products);
               renderLowStock(products);
+              showLowStockMessages(products);
               renderSpendingBySupplier(rows);
               renderSpendingByCategory(rows);
 
