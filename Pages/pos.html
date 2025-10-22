@@ -1203,6 +1203,45 @@
               finalizeScan();
             }
           });
+          // Text search: filter product cards by fuzzy match on name
+          function normalize(s){ return String(s||'').toLowerCase().trim(); }
+          function levenshtein(a,b){
+            a=normalize(a); b=normalize(b);
+            const m=[]; for(let i=0;i<=a.length;i++){ m[i]=[i]; }
+            for(let j=1;j<=b.length;j++){ m[0][j]=j; }
+            for(let i=1;i<=a.length;i++){
+              for(let j=1;j<=b.length;j++){
+                const cost = a[i-1]===b[j-1] ? 0 : 1;
+                m[i][j] = Math.min(m[i-1][j]+1, m[i][j-1]+1, m[i-1][j-1]+cost);
+              }
+            }
+            return m[a.length][b.length];
+          }
+          function applyTextSearchFilter(){
+            if (scannerEnabled) return; // do not filter while scanning
+            const q = normalize(searchInputEl.value||'');
+            const tol = Math.max(1, Math.floor((q||'').length/3));
+            document.querySelectorAll('.product-card').forEach(card => {
+              const name = normalize(card.getAttribute('data-name') || card.textContent || '');
+              const match = !q || name.includes(q) || name.startsWith(q) || levenshtein(q,name) <= tol;
+              card.style.display = match ? '' : 'none';
+            });
+          }
+          searchInputEl.addEventListener('input', applyTextSearchFilter);
+          // Autocomplete suggestions using product names
+          (async function wirePosAutocomplete(){
+            if (!window.attachAutocomplete) return;
+            let names = [];
+            try {
+              const res = await fetch('../api/products.php', { credentials: 'same-origin' });
+              const data = await res.json();
+              if (res.ok && data.ok) names = (data.data||[]).map(p=>p.name).filter(Boolean);
+            } catch {}
+            attachAutocomplete(searchInputEl, {
+              getItems: async ()=> names,
+              onSelect: (val)=>{ searchInputEl.value = val; applyTextSearchFilter(); }
+            });
+          })();
         }
 
         render();

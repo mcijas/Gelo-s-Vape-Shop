@@ -794,12 +794,28 @@
          const select = document.getElementById('supplierCategory');
          const search = document.getElementById('supplierSearch');
          const category = (select && select.value) || 'all';
-         const query = ((search && search.value) || '').toLowerCase();
+         function normalize(s){ return String(s||'').toLowerCase().trim(); }
+         const q = normalize((search && search.value) || '');
+         const tol = Math.max(1, Math.floor((q||'').length/3));
+         function levenshtein(a,b){
+           a=normalize(a); b=normalize(b);
+           const m=[]; for(let i=0;i<=a.length;i++){ m[i]=[i]; }
+           for(let j=1;j<=b.length;j++){ m[0][j]=j; }
+           for(let i=1;i<=a.length;i++){
+             for(let j=1;j<=b.length;j++){
+               const cost = a[i-1]===b[j-1] ? 0 : 1;
+               m[i][j] = Math.min(m[i-1][j]+1, m[i][j-1]+1, m[i-1][j-1]+cost);
+             }
+           }
+           return m[a.length][b.length];
+         }
          rows.forEach(r => {
            const categories = r.getAttribute('data-categories') || '';
-           const text = r.textContent.toLowerCase();
+           const name = normalize(r.cells[0]?.textContent||'');
+           const email = normalize(r.cells[1]?.textContent||'');
+           const text = `${name} ${email}`;
            const matchCat = (category === 'all' || categories.includes(category));
-           const matchText = (!query || text.includes(query));
+           const matchText = (!q || text.includes(q) || name.startsWith(q) || levenshtein(q,name) <= tol);
            r.style.display = (matchCat && matchText) ? '' : 'none';
          });
        }
@@ -836,6 +852,15 @@
            wireRowButtons();
            updateArchiveDisplay();
            applyFilters();
+           // Autocomplete suggestions for supplier search
+           const inputEl = document.getElementById('supplierSearch');
+           if (inputEl && window.attachAutocomplete) {
+             const names = suppliers.map(s=>s.name).filter(Boolean);
+             attachAutocomplete(inputEl, {
+               getItems: async ()=> names,
+               onSelect: (val)=>{ inputEl.value = val; applyFilters(); }
+             });
+           }
          } catch(_) { if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="color:#a3a3a3; padding:12px">Unable to load suppliers.</td></tr>'; }
        }
 

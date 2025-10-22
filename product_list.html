@@ -46,7 +46,7 @@
       <main class="main-content">
         <div class="toolbar">
           <div class="search-bar">
-            <input type="search" placeholder="Search products..." aria-label="Search products" />
+            <input id="productSearchPL" type="search" placeholder="Search products..." aria-label="Search products" />
             <button type="submit" aria-label="Search"><span class="icon search"></span></button>
                 </div>
           <div class="category-select">
@@ -101,17 +101,37 @@
       <script>
         // Category filter
         const select = document.getElementById('categoryFilter');
-        const rows = Array.from(document.querySelectorAll('tbody tr'));
+        let rows = [];
         function normalize(text){ return (text || '').toLowerCase().replace(/\s+/g,'').replace('-', ''); }
         function applyFilter() {
           const value = select ? select.value : 'all';
+          const term = normalize(document.getElementById('productSearchPL')?.value || '');
+          const tol = Math.max(1, Math.floor((term||'').length/3));
+          function levenshtein(a,b){
+            a=normalize(a); b=normalize(b);
+            const m=[]; for(let i=0;i<=a.length;i++){ m[i]=[i]; }
+            for(let j=1;j<=b.length;j++){ m[0][j]=j; }
+            for(let i=1;i<=a.length;i++){
+              for(let j=1;j<=b.length;j++){
+                const cost = a[i-1]===b[j-1] ? 0 : 1;
+                m[i][j] = Math.min(m[i-1][j]+1, m[i][j-1]+1, m[i-1][j-1]+cost);
+              }
+            }
+            return m[a.length][b.length];
+          }
+          // Always query current rows to reflect latest render
+          rows = Array.from(document.querySelectorAll('tbody tr'));
           rows.forEach(row => {
-            const catCell = row.cells[2];
-            const cat = normalize(catCell ? catCell.textContent : '');
-            row.style.display = (value === 'all' || cat.includes(value)) ? '' : 'none';
+            const name = normalize(row.cells[1]?.textContent || '');
+            const cat = normalize(row.cells[2]?.textContent || '');
+            const matchCat = (value === 'all' || cat.includes(value));
+            const matchSearch = !term || name.includes(term) || name.startsWith(term) || levenshtein(term, name) <= tol;
+            row.style.display = (matchCat && matchSearch) ? '' : 'none';
           });
         }
         if (select) { select.addEventListener('change', applyFilter); }
+        const searchEl = document.getElementById('productSearchPL');
+        if (searchEl) searchEl.addEventListener('input', applyFilter);
         applyFilter();
 
         // Product details modal for viewing only
@@ -213,8 +233,19 @@
               categoryFilter.innerHTML += `<option value="${cat.toLowerCase()}">${cat}</option>`;
             });
 
-            // Re-apply filter
+            // Re-apply filter and refresh rows reference
+            rows = Array.from(document.querySelectorAll('tbody tr'));
             applyFilter();
+
+            // Autocomplete for product search
+            const names = list.map(p=>p.name).filter(Boolean);
+            const inputEl = document.getElementById('productSearchPL');
+            if (inputEl && window.attachAutocomplete) {
+              attachAutocomplete(inputEl, {
+                getItems: async () => names,
+                onSelect: (val) => { inputEl.value = val; applyFilter(); }
+              });
+            }
           } catch (err) {
             tbody.innerHTML = '<tr><td colspan="5" style="color:#a3a3a3; padding:12px">Unable to load products.</td></tr>';
           }
@@ -223,6 +254,6 @@
         // Initialize
         loadProducts();
       </script>
-+     <script src="global.js"></script>
-   </body>
- </html>
+      <script src="global.js"></script>
+  </body>
+</html>

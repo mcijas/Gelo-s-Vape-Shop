@@ -70,7 +70,7 @@
               </select>
             </div>
             <div class="search-bar">
-              <input type="search" placeholder="Search products..." aria-label="Search products" />
+              <input id="inventorySearch" type="search" placeholder="Search products..." aria-label="Search products" />
               <button type="submit" aria-label="Search"><span class="icon search"></span></button>
             </div>
             <!-- Add Product and Add Stock buttons removed per request -->
@@ -191,10 +191,30 @@
               }
               function applyFilter(){
                 const v = (select && select.value) || 'all';
+                const termEl = document.getElementById('inventorySearch');
+                const term = (termEl ? termEl.value : '');
+                function normalize(s){ return String(s||'').toLowerCase().trim(); }
+                const q = normalize(term);
+                const tol = Math.max(1, Math.floor((q||'').length/3));
+                function levenshtein(a,b){
+                  a=normalize(a); b=normalize(b);
+                  const m=[]; for(let i=0;i<=a.length;i++){ m[i]=[i]; }
+                  for(let j=1;j<=b.length;j++){ m[0][j]=j; }
+                  for(let i=1;i<=a.length;i++){
+                    for(let j=1;j<=b.length;j++){
+                      const cost = a[i-1]===b[j-1] ? 0 : 1;
+                      m[i][j] = Math.min(m[i-1][j]+1, m[i][j-1]+1, m[i-1][j-1]+cost);
+                    }
+                  }
+                  return m[a.length][b.length];
+                }
                 if (!grid) return;
                 Array.from(grid.children).forEach(card=>{
                   const cat = (card.getAttribute('data-category')||'');
-                  card.style.display = (v==='all' || v===cat)? '' : 'none';
+                  const name = normalize(card.querySelector('.product-name')?.textContent||'');
+                  const matchCat = (v==='all' || v===cat);
+                  const matchSearch = !q || name.includes(q) || name.startsWith(q) || levenshtein(q,name)<=tol;
+                  card.style.display = (matchCat && matchSearch)? '' : 'none';
                 });
               }
               async function load(){
@@ -230,6 +250,15 @@
                     }
                   }
                   applyFilter();
+                  // Autocomplete for inventory search
+                  const inputEl = document.getElementById('inventorySearch');
+                  if (inputEl && window.attachAutocomplete) {
+                    const names = list.map(p=>p.name).filter(Boolean);
+                    attachAutocomplete(inputEl, {
+                      getItems: async ()=> names,
+                      onSelect: (val)=>{ inputEl.value = val; applyFilter(); }
+                    });
+                  }
                 } catch(err) {
                   console.error('Error loading products:', err);
                   if (grid) grid.innerHTML = '<div style="color:#a3a3a3; padding:20px">Unable to load products.</div>';
@@ -237,6 +266,7 @@
                 }
               }
               select?.addEventListener('change', applyFilter);
+              document.getElementById('inventorySearch')?.addEventListener('input', applyFilter);
               load();
 
               function openEditProduct(productId) {

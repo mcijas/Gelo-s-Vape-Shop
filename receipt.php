@@ -18,7 +18,7 @@
             line-height: 1.3;
         }
         .header {
-            text-align: center;
+            text-align: center;  
             margin-bottom: 8px;
         }
         .header .logo {

@@ -366,24 +366,50 @@
         document.getElementById('searchInput').addEventListener('input', filterProducts);
 
         function filterProducts() {
-            const categoryFilter = document.getElementById('categoryFilter').value.toLowerCase();
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            function normalize(s){ return String(s||'').toLowerCase().trim(); }
+            function levenshtein(a,b){
+                a=normalize(a); b=normalize(b);
+                const m=[]; for(let i=0;i<=a.length;i++){ m[i]=[i]; }
+                for(let j=1;j<=b.length;j++){ m[0][j]=j; }
+                for(let i=1;i<=a.length;i++){
+                    for(let j=1;j<=b.length;j++){
+                        const cost = a[i-1]===b[j-1] ? 0 : 1;
+                        m[i][j] = Math.min(m[i-1][j]+1, m[i][j-1]+1, m[i-1][j-1]+cost);
+                    }
+                }
+                return m[a.length][b.length];
+            }
+            const categoryFilter = normalize(document.getElementById('categoryFilter').value);
+            const searchTerm = normalize(document.getElementById('searchInput').value);
+            const tol = Math.max(1, Math.floor((searchTerm||'').length/3));
             const rows = document.querySelectorAll('#productTableBody tr');
 
             rows.forEach(row => {
                 const cells = row.querySelectorAll('td');
-                const name = cells[1].textContent.toLowerCase();
-                const category = cells[2].textContent.toLowerCase();
-                
+                const name = normalize(cells[1].textContent);
+                const category = normalize(cells[2].textContent);
                 const matchesCategory = categoryFilter === 'all' || category.includes(categoryFilter);
-                const matchesSearch = name.includes(searchTerm);
-                
+                const matchesSearch = !searchTerm || name.includes(searchTerm) || name.startsWith(searchTerm) || levenshtein(searchTerm, name) <= tol;
                 row.style.display = matchesCategory && matchesSearch ? '' : 'none';
             });
         }
 
         // Initialize
         loadProducts();
+        // Attach autocomplete suggestions after products load
+        (async function attachInventoryAutocomplete(){
+            const inputEl = document.getElementById('searchInput');
+            if (!inputEl || !window.attachAutocomplete) return;
+            try {
+                const res = await fetch('api/products.php');
+                const data = await res.json();
+                const names = (res.ok && data.ok) ? (data.data||[]).map(p=>p.name).filter(Boolean) : [];
+                attachAutocomplete(inputEl, {
+                    getItems: async ()=> names,
+                    onSelect: (val)=>{ inputEl.value = val; filterProducts(); }
+                });
+            } catch(_) {}
+        })();
     </script>
 </body>
 </html>

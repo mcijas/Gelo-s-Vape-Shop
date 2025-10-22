@@ -231,7 +231,7 @@
       <main class="main-content">
         <div class="toolbar">
           <div class="search-bar">
-            <input type="search" placeholder="Search customers..." aria-label="Search customers" />
+            <input id="customerSearch" type="search" placeholder="Search customers..." aria-label="Search customers" />
             <button type="submit" aria-label="Search"><span class="icon search"></span></button>
           </div>
           <button class="filter-btn" title="Filter" aria-label="Filter">⚙️</button>
@@ -418,6 +418,43 @@
             document.querySelectorAll('#customersBody .action-btn[title="Edit"]').forEach(btn=>{
               btn.addEventListener('click', openEdit);
             });
+
+            // Search + autocomplete wiring
+            const inputEl = document.getElementById('customerSearch');
+            function normalize(s){ return String(s||'').toLowerCase().trim(); }
+            function levenshtein(a,b){
+              a=normalize(a); b=normalize(b);
+              const m=[]; for(let i=0;i<=a.length;i++){ m[i]=[i]; }
+              for(let j=1;j<=b.length;j++){ m[0][j]=j; }
+              for(let i=1;i<=a.length;i++){
+                for(let j=1;j<=b.length;j++){
+                  const cost = a[i-1]===b[j-1] ? 0 : 1;
+                  m[i][j] = Math.min(m[i-1][j]+1, m[i][j-1]+1, m[i-1][j-1]+cost);
+                }
+              }
+              return m[a.length][b.length];
+            }
+            function applySearch(){
+              const term = normalize(inputEl?.value||'');
+              const tol = Math.max(1, Math.floor((term||'').length/3));
+              Array.from(document.querySelectorAll('#customersBody tr')).forEach(row=>{
+                const name = normalize(row.cells[1]?.textContent||'');
+                const email = normalize(row.cells[2]?.textContent||'');
+                const phone = normalize(row.cells[3]?.textContent||'');
+                const match = !term || name.includes(term) || email.includes(term) || phone.includes(term) || levenshtein(term,name) <= tol;
+                row.style.display = match ? '' : 'none';
+              });
+            }
+            inputEl?.addEventListener('input', applySearch);
+            applySearch();
+
+            if (inputEl && window.attachAutocomplete) {
+              const names = customers.map(c=>c.name).filter(Boolean);
+              attachAutocomplete(inputEl, {
+                getItems: async ()=> names,
+                onSelect: (val)=>{ inputEl.value = val; applySearch(); }
+              });
+            }
           } catch (_) { if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="color:#a3a3a3; padding:12px">Unable to load customers.</td></tr>'; }
         }
         loadCustomers();
