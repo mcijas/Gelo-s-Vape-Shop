@@ -23,6 +23,15 @@ try {
     <link rel="stylesheet" href="inventory.css" />
     <link rel="stylesheet" href="reports.css" />
     <link rel="stylesheet" href="style.css" />
+    <style>
+      .table-scroll { max-height: 500px; overflow-y: auto; overflow-x: hidden; border-radius: 8px; }
+      .table-scroll table { width: 100%; border-collapse: collapse; }
+      .table-scroll::-webkit-scrollbar { width: 8px; }
+      .table-scroll::-webkit-scrollbar-track { background: #1f1f1f; border-radius: 8px; }
+      .table-scroll::-webkit-scrollbar-thumb { background-color: #6b6b6b; border-radius: 8px; }
+      .table-scroll::-webkit-scrollbar-thumb:hover { background-color: #8b8b8b; }
+      .table-scroll { scrollbar-color: #6b6b6b #1f1f1f; scrollbar-width: thin; }
+    </style>
     <!-- Offline-only: removed external CDN scripts; exports use built-in fallbacks -->
   </head>
   <body>
@@ -116,33 +125,41 @@ try {
           <div class="two-col">
             <div class="card-table">
               <header>Sales by Product</header>
-              <table>
-                <thead><tr><th>Product</th><th>Qty</th><th>Revenue</th></tr></thead>
-                <tbody id="salesByProduct"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Product</th><th>Qty</th><th>Revenue</th></tr></thead>
+                  <tbody id="salesByProduct"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Sales by Category</header>
-              <table>
-                <thead><tr><th>Category</th><th>Qty</th><th>Revenue</th></tr></thead>
-                <tbody id="salesByCategory"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Category</th><th>Qty</th><th>Revenue</th></tr></thead>
+                  <tbody id="salesByCategory"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div class="two-col">
             <div class="card-table">
               <header>Sales by Employee / Cashier</header>
-              <table>
-                <thead><tr><th>Employee</th><th>Transactions</th><th>Revenue</th></tr></thead>
-                <tbody id="salesByEmployee"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Employee</th><th>Transactions</th><th>Revenue</th></tr></thead>
+                  <tbody id="salesByEmployee"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Payment Method Breakdown</header>
-              <table>
-                <thead><tr><th>Method</th><th>Transactions</th><th>Revenue</th></tr></thead>
-                <tbody id="paymentBreakdown"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Method</th><th>Transactions</th><th>Revenue</th></tr></thead>
+                  <tbody id="paymentBreakdown"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
@@ -164,33 +181,41 @@ try {
           <div class="two-col">
             <div class="card-table">
               <header>Stock Levels</header>
-              <table>
-                <thead><tr><th>Product</th><th>Stock</th><th>Reorder Point</th></tr></thead>
-                <tbody id="stockLevels"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Product</th><th>Stock</th><th>Reorder Point</th></tr></thead>
+                  <tbody id="stockLevels"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Low Stock Alerts</header>
-              <table>
-                <thead><tr><th>Product</th><th>Stock</th><th>Needed</th></tr></thead>
-                <tbody id="lowStock"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Product</th><th>Stock</th><th>Needed</th></tr></thead>
+                  <tbody id="lowStock"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div class="two-col">
             <div class="card-table">
               <header>Inventory Valuation</header>
-              <table>
-                <thead><tr><th>Category</th><th>Units</th><th>Cost Value</th></tr></thead>
-                <tbody id="inventoryValuation"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Category</th><th>Units</th><th>Cost Value</th></tr></thead>
+                  <tbody id="inventoryValuation"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Stock Movement</header>
-              <table>
-                <thead><tr><th>Date</th><th>Product</th><th>Category</th><th>Type</th><th>Qty</th></tr></thead>
-                <tbody id="stockMovement"><tr><td colspan="5">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Date</th><th>Product</th><th>Category</th><th>Type</th><th>Qty</th></tr></thead>
+                  <tbody id="stockMovement"><tr><td colspan="5">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
@@ -216,17 +241,21 @@ try {
           <div class="two-col">
             <div class="card-table">
               <header>Tax Reports</header>
-              <table>
-                <thead><tr><th>Tax Type</th><th>Base</th><th>Tax</th></tr></thead>
-                <tbody id="taxReports"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Tax Type</th><th>Base</th><th>Tax</th></tr></thead>
+                  <tbody id="taxReports"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Refunds & Discounts</header>
-              <table>
-                <thead><tr><th>Type</th><th>Count</th><th>Amount</th></tr></thead>
-                <tbody id="refundsTable"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Type</th><th>Count</th><th>Amount</th></tr></thead>
+                  <tbody id="refundsTable"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
@@ -252,25 +281,31 @@ try {
           <div class="two-col">
             <div class="card-table">
               <header>Spending by Supplier</header>
-              <table>
-                <thead><tr><th>Supplier</th><th>Categories</th><th>Orders</th><th>Total Spent</th></tr></thead>
-                <tbody id="spendingBySupplier"><tr><td colspan="4">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Supplier</th><th>Categories</th><th>Orders</th><th>Total Spent</th></tr></thead>
+                  <tbody id="spendingBySupplier"><tr><td colspan="4">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Spending by Category</header>
-              <table>
-                <thead><tr><th>Category</th><th>Suppliers</th><th>Products</th><th>Total Spent</th></tr></thead>
-                <tbody id="spendingByCategory"><tr><td colspan="4">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Category</th><th>Suppliers</th><th>Products</th><th>Total Spent</th></tr></thead>
+                  <tbody id="spendingByCategory"><tr><td colspan="4">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div class="card-table">
             <header>Supplier Performance</header>
-            <table>
-              <thead><tr><th>Supplier</th><th>Categories</th><th>Avg Order Value</th><th>Order Frequency</th><th>Quality Rating</th></tr></thead>
-              <tbody id="supplierPerformance"><tr><td colspan="5">No data</td></tr></tbody>
-            </table>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Supplier</th><th>Categories</th><th>Avg Order Value</th><th>Order Frequency</th><th>Quality Rating</th></tr></thead>
+                <tbody id="supplierPerformance"><tr><td colspan="5">No data</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </section>
 
@@ -290,25 +325,31 @@ try {
           <div class="two-col">
             <div class="card-table">
               <header>Purchase History</header>
-              <table>
-                <thead><tr><th>Date</th><th>Customer</th><th>Items</th><th>Total</th></tr></thead>
-                <tbody id="purchaseHistory"><tr><td colspan="4">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Date</th><th>Customer</th><th>Items</th><th>Total</th></tr></thead>
+                  <tbody id="purchaseHistory"><tr><td colspan="4">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Loyalty Points / Rewards</header>
-              <table>
-                <thead><tr><th>Customer</th><th>Points</th><th>Redeemed</th></tr></thead>
-                <tbody id="loyalty"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Customer</th><th>Points</th><th>Redeemed</th></tr></thead>
+                  <tbody id="loyalty"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div class="card-table">
             <header>Customer Demographics</header>
-            <table>
-              <thead><tr><th>Segment</th><th>Customers</th><th>Share</th></tr></thead>
-              <tbody id="demographics"><tr><td colspan="3">No data</td></tr></tbody>
-            </table>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Segment</th><th>Customers</th><th>Share</th></tr></thead>
+                <tbody id="demographics"><tr><td colspan="3">No data</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </section>
 
@@ -328,25 +369,31 @@ try {
           <div class="two-col">
             <div class="card-table">
               <header>Shift Reports / Z-Reports</header>
-              <table>
-                <thead><tr><th>Shift</th><th>Cash Count</th><th>Sales</th></tr></thead>
-                <tbody id="shiftReports"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Shift</th><th>Cash Count</th><th>Sales</th></tr></thead>
+                  <tbody id="shiftReports"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Returned / Refunded products</header>
-              <table>
-                <thead><tr><th>Date</th><th>Txn ID</th><th>Employee</th><th>Reason</th></tr></thead>
-                <tbody id="voids"><tr><td colspan="4">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Date</th><th>Txn ID</th><th>Employee</th><th>Reason</th></tr></thead>
+                  <tbody id="voids"><tr><td colspan="4">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div class="card-table">
             <header>Staff Hours</header>
-            <table>
-              <thead><tr><th>Employee</th><th>Hours</th><th>Shifts</th></tr></thead>
-              <tbody id="staffHours"><tr><td colspan="3">No data</td></tr></tbody>
-            </table>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Employee</th><th>Hours</th><th>Shifts</th></tr></thead>
+                <tbody id="staffHours"><tr><td colspan="3">No data</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </section>
 
@@ -1377,13 +1424,58 @@ try {
               const body = document.getElementById('shiftReports');
               if (!body) return;
               const rowsArr = Array.isArray(shifts) ? shifts : [];
-              if (!rowsArr.length) { body.innerHTML = '<tr><td colspan="3">No data</td></tr>'; return; }
 
               const [allTxns, allRefunds, allMoves] = await Promise.all([
                 getTransactions(), getRefunds(), getStockMovements()
               ]);
               const txnById = {};
               (allTxns||[]).forEach(t => { txnById[t.id] = t; });
+
+              // Fallback: No shifts — aggregate by selected date range
+              if (!rowsArr.length) {
+                const completedTxns = (allTxns||[]).filter(t => {
+                  const status = String(t.status || '').toLowerCase();
+                  const isCompleted = !status || status === 'completed';
+                  return isCompleted && inRange(t.date, from?.value, to?.value);
+                });
+                const salesTotal = completedTxns.reduce((sum,t)=> sum + (parseFloat(t.total)||0), 0);
+                const txnCount = completedTxns.length;
+                const cashSales = completedTxns
+                  .filter(t => String(t.paymentMethod || t.payment_method || '').toLowerCase() === 'cash')
+                  .reduce((sum,t)=> sum + (parseFloat(t.total)||0), 0);
+                const nonCashSales = Math.max(0, (parseFloat(salesTotal)||0) - (parseFloat(cashSales)||0));
+                const filtRefunds = (allRefunds||[]).filter(r => inRange(r.refund_date, from?.value, to?.value));
+                const refundTotal = filtRefunds.reduce((sum,r)=> sum + (parseFloat(r.refund_amount)||0), 0);
+                const refundCount = filtRefunds.length;
+                const filtPurchases = (allMoves||[]).filter(m => m.type === 'IN' && inRange(m.date, from?.value, to?.value));
+                const purchaseItems = filtPurchases.reduce((s,m)=> s + (parseInt(m.qty)||0), 0);
+                const purchaseCost = filtPurchases.reduce((s,m)=> s + ((parseFloat(m.qty)||0) * (parseFloat(m.unitCost)||0)), 0);
+                const label = `No shifts found — ${from?.value || 'all'} to ${to?.value || 'all'}`;
+                const cashBits = [ 'Opening: —', 'Closing: —', 'Var: —' ];
+                const salesCell = `
+                  <div>Sales (completed): ${fmtPeso(salesTotal)} (${txnCount} txns)</div>
+                  <div style="opacity:0.85">Cash: ${fmtPeso(cashSales)} · Non-cash: ${fmtPeso(nonCashSales)} </div>
+                  <div>Refunds: -${fmtPeso(refundTotal)} (${refundCount})</div>
+                  <div>Purchases: ${fmtPeso(purchaseCost)} (${purchaseItems} items)</div>
+                `;
+                body.innerHTML = `<tr><td>${label}</td><td>${cashBits.join('<br/>')}</td><td>${salesCell}</td></tr>`;
+                return;
+              }
+
+              // Debug logging
+              console.log('Z-Reports Debug:', {
+                totalShifts: rowsArr.length,
+                totalTransactions: allTxns?.length || 0,
+                shifts: rowsArr.map(s => ({id: s.id, employee: s.employee_name, started: s.started_at, ended: s.ended_at})),
+                sampleTransactions: (allTxns||[]).slice(0, 3).map(t => ({
+                  id: t.id, 
+                  date: t.date, 
+                  cashier: t.cashier, 
+                  total: t.total, 
+                  shift_id: t.shift_id,
+                  status: t.status
+                }))
+              });
 
               const html = rowsArr.map(s => {
                 const start = new Date(s.started_at);
@@ -1392,32 +1484,83 @@ try {
                 const startDay = new Date(start); startDay.setHours(0,0,0,0);
                 const endDay = new Date(end); endDay.setHours(23,59,59,999);
 
+                // Enhanced transaction filtering with better fallback logic
                 const shiftTxns = (allTxns||[]).filter(t => {
                   const tDate = new Date(t.date);
                   const status = String(t.status || '').toLowerCase();
                   const isCompleted = !status || status === 'completed';
+                  
+                  // Primary: Direct shift_id link
                   const linked = (t.shift_id && String(t.shift_id) === String(s.id));
-                  const windowed = (!t.shift_id && tDate >= start && tDate <= end && (!s.employee_name || (t.cashier === s.employee_name)));
-                  return isCompleted && (linked || windowed);
+                  
+                  // Fallback: Time window + cashier matching (more flexible)
+                  const cashierMatch = !s.employee_name || (t.cashier === s.employee_name) || 
+                                     (t.cashier && s.employee_name && t.cashier.toLowerCase().includes(s.employee_name.toLowerCase()));
+                  const windowed = (!t.shift_id && tDate >= start && tDate <= end && cashierMatch);
+                  
+                  // Additional fallback: If no shift_id exists anywhere, use broader time matching
+                  const hasAnyShiftIds = (allTxns||[]).some(tx => tx.shift_id);
+                  const broadMatch = !hasAnyShiftIds && tDate >= startDay && tDate <= endDay && cashierMatch;
+                  
+                  const matched = isCompleted && (linked || windowed || broadMatch);
+                  
+                  // Debug individual transaction matching
+                  if (matched) {
+                    console.log(`Transaction ${t.id} matched to shift ${s.id}:`, {
+                      method: linked ? 'direct_link' : (windowed ? 'time_window' : 'broad_match'),
+                      transaction: {id: t.id, date: t.date, cashier: t.cashier, total: t.total, shift_id: t.shift_id},
+                      shift: {id: s.id, employee: s.employee_name, start: s.started_at, end: s.ended_at}
+                    });
+                  }
+                  
+                  return matched;
                 });
                 const salesTotal = shiftTxns.reduce((sum,t)=> sum + (parseFloat(t.total)||0), 0);
                 const txnCount = shiftTxns.length;
 
                 const shiftRefunds = (allRefunds||[]).filter(r => {
                   const rt = txnById[r.transaction_id];
+                  let matched = false;
+                  
                   if (rt) {
-                    if (rt.shift_id && String(rt.shift_id) === String(s.id)) return true;
+                    if (rt.shift_id && String(rt.shift_id) === String(s.id)) {
+                      matched = true;
+                    } else {
+                      const rd = new Date(r.refund_date);
+                      matched = (!rt.shift_id && rd >= start && rd <= end && (!s.employee_name || (rt.cashier === s.employee_name)));
+                    }
+                  } else {
                     const rd = new Date(r.refund_date);
-                    return (!rt.shift_id && rd >= start && rd <= end && (!s.employee_name || (rt.cashier === s.employee_name)));
+                    matched = rd >= start && rd <= end; // last resort
                   }
-                  const rd = new Date(r.refund_date);
-                  return rd >= start && rd <= end; // last resort
+                  
+                  if (matched) {
+                    console.log(`Refund ${r.id} matched to shift ${s.id}:`, {
+                      refund: {id: r.id, date: r.refund_date, amount: r.refund_amount, transaction_id: r.transaction_id},
+                      originalTransaction: rt ? {id: rt.id, cashier: rt.cashier, shift_id: rt.shift_id} : null
+                    });
+                  }
+                  
+                  return matched;
                 });
                 const refundTotal = shiftRefunds.reduce((sum,r)=> sum + (parseFloat(r.refund_amount)||0), 0);
                 const refundCount = shiftRefunds.length;
 
                 // Purchases: treat movement timestamps on the same calendar dates as within shift window
-                const shiftPurchases = (allMoves||[]).filter(m => m.type === 'IN' && (new Date(m.date) >= startDay) && (new Date(m.date) <= endDay));
+                const shiftPurchases = (allMoves||[]).filter(m => {
+                  const isPurchase = m.type === 'IN';
+                  const mDate = new Date(m.date);
+                  const windowed = mDate >= startDay && mDate <= endDay;
+                  const matched = isPurchase && windowed;
+                  
+                  if (matched) {
+                    console.log(`Purchase ${m.id} matched to shift ${s.id}:`, {
+                      purchase: {id: m.id, date: m.date, type: m.type, qty: m.qty, unitCost: m.unitCost}
+                    });
+                  }
+                  
+                  return matched;
+                });
                 const purchaseItems = shiftPurchases.reduce((s,m)=> s + (parseInt(m.qty)||0), 0);
                 const purchaseCost = shiftPurchases.reduce((s,m)=> s + ((parseFloat(m.qty)||0) * (parseFloat(m.unitCost)||0)), 0);
 
@@ -1425,6 +1568,14 @@ try {
                 const cashSales = shiftTxns
                   .filter(t => String(t.paymentMethod || t.payment_method || '').toLowerCase() === 'cash')
                   .reduce((sum,t)=> sum + (parseFloat(t.total)||0), 0);
+                const nonCashSales = Math.max(0, (parseFloat(salesTotal)||0) - (parseFloat(cashSales)||0));
+
+                // Debug shift totals
+                console.log(`Shift ${s.id} (${s.employee_name}) totals:`, {
+                  salesTotal, txnCount, cashSales, nonCashSales,
+                  refundTotal, refundCount, purchaseCost, purchaseItems,
+                  opening_cash: s.opening_cash, closing_cash: s.closing_cash, variance: s.variance
+                });
 
                 const cashBits = [];
                 cashBits.push('Opening: ' + fmtPeso(s.opening_cash || 0));
@@ -1440,7 +1591,7 @@ try {
                 const label = `${s.employee_name || '—'} — ${new Date(s.started_at).toLocaleString()}${s.ended_at ? (' to ' + new Date(s.ended_at).toLocaleString()) : ' (open)'}`;
                 const salesCell = `
                   <div>Sales (completed): ${fmtPeso(salesTotal)} (${txnCount} txns)</div>
-                  <div style="opacity:0.85">Cash: ${fmtPeso(cashSales)} · Non-cash: ${fmtPeso(Math.max(0, (parseFloat(salesTotal)||0) - (parseFloat(cashSales)||0)))} </div>
+                  <div style="opacity:0.85">Cash: ${fmtPeso(cashSales)} · Non-cash: ${fmtPeso(nonCashSales)} </div>
                   <div>Refunds: -${fmtPeso(refundTotal)} (${refundCount})</div>
                   <div>Purchases: ${fmtPeso(purchaseCost)} (${purchaseItems} items)</div>
                 `;

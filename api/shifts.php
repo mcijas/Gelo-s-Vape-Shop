@@ -41,18 +41,18 @@ try {
       $data = getOpenShift($pdo, $employeeName);
       // If an open shift exists, augment with live sales so Operational Reports show running totals
       if ($data && ($data['status'] ?? '') === 'open') {
-        $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND payment_method='Cash'");
+        $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND status='completed' AND payment_method='Cash'");
         $cashStmt->execute([$data['id']]);
         $liveCash = (float)($cashStmt->fetch()['s'] ?? 0);
-        $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND payment_method<>'Cash'");
+        $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND status='completed' AND payment_method<>'Cash'");
         $nonCashStmt->execute([$data['id']]);
         $liveNonCash = (float)($nonCashStmt->fetch()['s'] ?? 0);
         // Fallback for legacy transactions without shift_id: use cashier/time window
         if (($liveCash + $liveNonCash) <= 0.00001) {
-          $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND payment_method='Cash' AND date BETWEEN ? AND NOW()");
+          $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND status='completed' AND payment_method='Cash' AND date BETWEEN ? AND NOW()");
           $cashStmt->execute([$data['employee_name'], $data['started_at']]);
           $liveCash = (float)($cashStmt->fetch()['s'] ?? 0);
-          $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND payment_method<>'Cash' AND date BETWEEN ? AND NOW()");
+          $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND status='completed' AND payment_method<>'Cash' AND date BETWEEN ? AND NOW()");
           $nonCashStmt->execute([$data['employee_name'], $data['started_at']]);
           $liveNonCash = (float)($nonCashStmt->fetch()['s'] ?? 0);
         }
@@ -69,18 +69,18 @@ try {
       // For any open shifts, compute live sales so Operational Reports show non-zero Sales
       foreach ($rows as &$row) {
         if (($row['status'] ?? '') === 'open') {
-          $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND payment_method='Cash'");
+          $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND status='completed' AND payment_method='Cash'");
           $cashStmt->execute([$row['id']]);
           $liveCash = (float)($cashStmt->fetch()['s'] ?? 0);
-          $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND payment_method<>'Cash'");
+          $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND status='completed' AND payment_method<>'Cash'");
           $nonCashStmt->execute([$row['id']]);
           $liveNonCash = (float)($nonCashStmt->fetch()['s'] ?? 0);
           // Fallback for legacy transactions without shift_id
           if (($liveCash + $liveNonCash) <= 0.00001) {
-            $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND payment_method='Cash' AND date BETWEEN ? AND NOW()");
+            $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND status='completed' AND payment_method='Cash' AND date BETWEEN ? AND NOW()");
             $cashStmt->execute([$row['employee_name'], $row['started_at']]);
             $liveCash = (float)($cashStmt->fetch()['s'] ?? 0);
-            $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND payment_method<>'Cash' AND date BETWEEN ? AND NOW()");
+            $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND status='completed' AND payment_method<>'Cash' AND date BETWEEN ? AND NOW()");
             $nonCashStmt->execute([$row['employee_name'], $row['started_at']]);
             $liveNonCash = (float)($nonCashStmt->fetch()['s'] ?? 0);
           }
@@ -89,32 +89,36 @@ try {
           $row['sales_total'] = $liveCash + $liveNonCash;
         } else if (($row['status'] ?? '') === 'closed' && ((float)($row['sales_total'] ?? 0) === 0.0)) {
           // Auto-heal historical closed shifts missing sales_total: recompute via session linkage
-          $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND payment_method='Cash'");
+          $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND status='completed' AND payment_method='Cash'");
           $cashStmt->execute([$row['id']]);
           $cash = (float)($cashStmt->fetch()['s'] ?? 0);
-          $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND payment_method<>'Cash'");
+          $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND status='completed' AND payment_method<>'Cash'");
           $nonCashStmt->execute([$row['id']]);
           $nonCash = (float)($nonCashStmt->fetch()['s'] ?? 0);
           // Fallback for legacy transactions without shift_id
           if (($cash + $nonCash) <= 0.00001 && !empty($row['started_at'])) {
-            $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND payment_method='Cash' AND date BETWEEN ? AND COALESCE(?, NOW())");
+            $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND status='completed' AND payment_method='Cash' AND date BETWEEN ? AND COALESCE(?, NOW())");
             $cashStmt->execute([$row['employee_name'], $row['started_at'], $row['ended_at']]);
             $cash = (float)($cashStmt->fetch()['s'] ?? 0);
-            $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND payment_method<>'Cash' AND date BETWEEN ? AND COALESCE(?, NOW())");
+            $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND status='completed' AND payment_method<>'Cash' AND date BETWEEN ? AND COALESCE(?, NOW())");
             $nonCashStmt->execute([$row['employee_name'], $row['started_at'], $row['ended_at']]);
             $nonCash = (float)($nonCashStmt->fetch()['s'] ?? 0);
           }
           $sum = $cash + $nonCash;
           $expected = (float)($row['opening_cash'] ?? 0) + $cash;
+          $recomputedClosing = (float)($row['opening_cash'] ?? 0) + $cash;
           $variance = isset($row['closing_cash']) && $row['closing_cash'] !== null ? ((float)$row['closing_cash'] - $expected) : null;
-          // Persist backfill to DB
-          $upd = $pdo->prepare("UPDATE shifts SET sales_total=?, cash_sales=?, noncash_sales=?, variance=COALESCE(?, variance) WHERE id=?");
-          $upd->execute([$sum, $cash, $nonCash, $variance, $row['id']]);
+          // Persist backfill to DB; also correct closing_cash if it equals opening without sales
+          $upd = $pdo->prepare("UPDATE shifts SET sales_total=?, cash_sales=?, noncash_sales=?, variance=COALESCE(?, variance), closing_cash=COALESCE(closing_cash, ?), ended_at=COALESCE(ended_at, NOW()) WHERE id=?");
+          // If closing_cash equals opening but we have cash sales, set closing_cash to opening+cash
+          $closingToPersist = ((float)($row['closing_cash'] ?? 0) === (float)($row['opening_cash'] ?? 0) && $cash > 0) ? $recomputedClosing : ($row['closing_cash'] ?? null);
+          $upd->execute([$sum, $cash, $nonCash, $variance, $closingToPersist, $row['id']]);
           // Reflect in response
           $row['sales_total'] = $sum;
           $row['cash_sales'] = $cash;
           $row['noncash_sales'] = $nonCash;
           if ($variance !== null) { $row['variance'] = $variance; }
+          if ($closingToPersist !== null) { $row['closing_cash'] = $closingToPersist; }
         }
       }
       unset($row);
@@ -148,18 +152,18 @@ try {
     if ($shift['status'] === 'closed') { echo json_encode(['ok'=>false,'error'=>'Shift already closed']); exit; }
 
     // Calculate sales totals during shift by session linkage (voided sales are removed from transactions)
-    $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND payment_method='Cash'");
+    $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND status='completed' AND payment_method='Cash'");
     $cashStmt->execute([$shift['id']]);
     $cashSales = (float)$cashStmt->fetch()['s'];
-    $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND payment_method<>'Cash'");
+    $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE shift_id=? AND status='completed' AND payment_method<>'Cash'");
     $nonCashStmt->execute([$shift['id']]);
     $nonCashSales = (float)$nonCashStmt->fetch()['s'];
     // Fallback for legacy transactions without shift_id
     if (($cashSales + $nonCashSales) <= 0.00001) {
-      $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND payment_method='Cash' AND date BETWEEN ? AND NOW()");
+      $cashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND status='completed' AND payment_method='Cash' AND date BETWEEN ? AND NOW()");
       $cashStmt->execute([$shift['employee_name'], $shift['started_at']]);
       $cashSales = (float)$cashStmt->fetch()['s'];
-      $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND payment_method<>'Cash' AND date BETWEEN ? AND NOW()");
+      $nonCashStmt = $pdo->prepare("SELECT COALESCE(SUM(total),0) AS s FROM transactions WHERE cashier=? AND status='completed' AND payment_method<>'Cash' AND date BETWEEN ? AND NOW()");
       $nonCashStmt->execute([$shift['employee_name'], $shift['started_at']]);
       $nonCashSales = (float)$nonCashStmt->fetch()['s'];
     }

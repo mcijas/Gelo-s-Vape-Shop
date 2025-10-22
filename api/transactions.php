@@ -73,7 +73,7 @@ try {
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
   header('Content-Type: application/json');
   try {
-    $txStmt = $pdo->query("SELECT t.id, t.ref, t.date, t.customer_name, t.customer_id, t.cashier, t.payment_method, t.total, t.discount, t.status, c.name as customer FROM transactions t LEFT JOIN customers c ON t.customer_id = c.id ORDER BY t.date DESC LIMIT 1000");
+    $txStmt = $pdo->query("SELECT t.id, t.ref, t.date, t.customer_name, t.customer_id, t.cashier, t.payment_method, t.total, t.discount, t.status, t.shift_id, t.cashier_id, c.name as customer FROM transactions t LEFT JOIN customers c ON t.customer_id = c.id ORDER BY t.date DESC LIMIT 1000");
     $txns = $txStmt->fetchAll();
     $itemsStmt = $pdo->query("SELECT transaction_id, code, product, category, qty, price FROM transaction_items");
     $items = $itemsStmt->fetchAll();
@@ -142,6 +142,16 @@ $discount = (float)($input['discount'] ?? 0);
 $items = $input['items'] ?? [];
 $userId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : null;
 $shiftId = isset($input['shift_id']) ? (int)$input['shift_id'] : null;
+
+// Auto-link to current open shift for this cashier if not provided
+if (!$shiftId && !empty($cashier)) {
+  try {
+    $s = $pdo->prepare("SELECT id FROM shifts WHERE status='open' AND employee_name=? ORDER BY id DESC LIMIT 1");
+    $s->execute([$cashier]);
+    $row = $s->fetch();
+    if ($row && isset($row['id'])) { $shiftId = (int)$row['id']; }
+  } catch (Throwable $__) { /* ignore */ }
+}
 
 // Ensure non-negative values
 if ($total < 0) { $total = 0; }

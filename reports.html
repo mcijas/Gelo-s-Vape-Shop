@@ -8,6 +8,15 @@
     <link rel="stylesheet" href="inventory.css" />
     <link rel="stylesheet" href="reports.css" />
     <link rel="stylesheet" href="style.css" />
+    <style>
+      .table-scroll { max-height: 500px; overflow-y: auto; overflow-x: hidden; border-radius: 8px; }
+      .table-scroll table { width: 100%; border-collapse: collapse; }
+      .table-scroll::-webkit-scrollbar { width: 8px; }
+      .table-scroll::-webkit-scrollbar-track { background: #1f1f1f; border-radius: 8px; }
+      .table-scroll::-webkit-scrollbar-thumb { background-color: #6b6b6b; border-radius: 8px; }
+      .table-scroll::-webkit-scrollbar-thumb:hover { background-color: #8b8b8b; }
+      .table-scroll { scrollbar-color: #6b6b6b #1f1f1f; scrollbar-width: thin; }
+    </style>
     <!-- Offline-only: removed external CDN scripts; exports use built-in fallbacks -->
   </head>
   <body>
@@ -101,33 +110,41 @@
           <div class="two-col">
             <div class="card-table">
               <header>Sales by Product</header>
-              <table>
-                <thead><tr><th>Product</th><th>Qty</th><th>Revenue</th></tr></thead>
-                <tbody id="salesByProduct"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Product</th><th>Qty</th><th>Revenue</th></tr></thead>
+                  <tbody id="salesByProduct"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Sales by Category</header>
-              <table>
-                <thead><tr><th>Category</th><th>Qty</th><th>Revenue</th></tr></thead>
-                <tbody id="salesByCategory"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Category</th><th>Qty</th><th>Revenue</th></tr></thead>
+                  <tbody id="salesByCategory"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div class="two-col">
             <div class="card-table">
               <header>Sales by Employee / Cashier</header>
-              <table>
-                <thead><tr><th>Employee</th><th>Transactions</th><th>Revenue</th></tr></thead>
-                <tbody id="salesByEmployee"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Employee</th><th>Transactions</th><th>Revenue</th></tr></thead>
+                  <tbody id="salesByEmployee"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Payment Method Breakdown</header>
-              <table>
-                <thead><tr><th>Method</th><th>Transactions</th><th>Revenue</th></tr></thead>
-                <tbody id="paymentBreakdown"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Method</th><th>Transactions</th><th>Revenue</th></tr></thead>
+                  <tbody id="paymentBreakdown"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
@@ -149,33 +166,41 @@
           <div class="two-col">
             <div class="card-table">
               <header>Stock Levels</header>
-              <table>
-                <thead><tr><th>Product</th><th>Stock</th><th>Reorder Point</th></tr></thead>
-                <tbody id="stockLevels"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Product</th><th>Stock</th><th>Reorder Point</th></tr></thead>
+                  <tbody id="stockLevels"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Low Stock Alerts</header>
-              <table>
-                <thead><tr><th>Product</th><th>Stock</th><th>Needed</th></tr></thead>
-                <tbody id="lowStock"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Product</th><th>Stock</th><th>Needed</th></tr></thead>
+                  <tbody id="lowStock"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div class="two-col">
             <div class="card-table">
               <header>Inventory Valuation</header>
-              <table>
-                <thead><tr><th>Category</th><th>Units</th><th>Cost Value</th></tr></thead>
-                <tbody id="inventoryValuation"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Category</th><th>Units</th><th>Cost Value</th></tr></thead>
+                  <tbody id="inventoryValuation"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Stock Movement</header>
-              <table>
-                <thead><tr><th>Date</th><th>Product</th><th>Category</th><th>Type</th><th>Qty</th></tr></thead>
-                <tbody id="stockMovement"><tr><td colspan="5">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Date</th><th>Product</th><th>Category</th><th>Type</th><th>Qty</th></tr></thead>
+                  <tbody id="stockMovement"><tr><td colspan="5">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
@@ -201,17 +226,21 @@
           <div class="two-col">
             <div class="card-table">
               <header>Tax Reports</header>
-              <table>
-                <thead><tr><th>Tax Type</th><th>Base</th><th>Tax</th></tr></thead>
-                <tbody id="taxReports"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Tax Type</th><th>Base</th><th>Tax</th></tr></thead>
+                  <tbody id="taxReports"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Returned / Refunded products</header>
-              <table>
-                <thead><tr><th>Type</th><th>Count</th><th>Amount</th></tr></thead>
-                <tbody id="refundsTable"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Type</th><th>Count</th><th>Amount</th></tr></thead>
+                  <tbody id="refundsTable"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
         </section>
@@ -237,25 +266,31 @@
           <div class="two-col">
             <div class="card-table">
               <header>Spending by Supplier</header>
-              <table>
-                <thead><tr><th>Supplier</th><th>Categories</th><th>Orders</th><th>Total Spent</th></tr></thead>
-                <tbody id="spendingBySupplier"><tr><td colspan="4">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Supplier</th><th>Categories</th><th>Orders</th><th>Total Spent</th></tr></thead>
+                  <tbody id="spendingBySupplier"><tr><td colspan="4">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Spending by Category</header>
-              <table>
-                <thead><tr><th>Category</th><th>Suppliers</th><th>Products</th><th>Total Spent</th></tr></thead>
-                <tbody id="spendingByCategory"><tr><td colspan="4">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Category</th><th>Suppliers</th><th>Products</th><th>Total Spent</th></tr></thead>
+                  <tbody id="spendingByCategory"><tr><td colspan="4">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div class="card-table">
             <header>Supplier Performance</header>
-            <table>
-              <thead><tr><th>Supplier</th><th>Categories</th><th>Avg Order Value</th><th>Order Frequency</th><th>Quality Rating</th></tr></thead>
-              <tbody id="supplierPerformance"><tr><td colspan="5">No data</td></tr></tbody>
-            </table>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Supplier</th><th>Categories</th><th>Avg Order Value</th><th>Order Frequency</th><th>Quality Rating</th></tr></thead>
+                <tbody id="supplierPerformance"><tr><td colspan="5">No data</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </section>
 
@@ -275,25 +310,31 @@
           <div class="two-col">
             <div class="card-table">
               <header>Purchase History</header>
-              <table>
-                <thead><tr><th>Date</th><th>Customer</th><th>Items</th><th>Total</th></tr></thead>
-                <tbody id="purchaseHistory"><tr><td colspan="4">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Date</th><th>Customer</th><th>Items</th><th>Total</th></tr></thead>
+                  <tbody id="purchaseHistory"><tr><td colspan="4">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Loyalty Points / Rewards</header>
-              <table>
-                <thead><tr><th>Customer</th><th>Points</th><th>Redeemed</th></tr></thead>
-                <tbody id="loyalty"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Customer</th><th>Points</th><th>Redeemed</th></tr></thead>
+                  <tbody id="loyalty"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div class="card-table">
             <header>Customer Demographics</header>
-            <table>
-              <thead><tr><th>Segment</th><th>Customers</th><th>Share</th></tr></thead>
-              <tbody id="demographics"><tr><td colspan="3">No data</td></tr></tbody>
-            </table>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Segment</th><th>Customers</th><th>Share</th></tr></thead>
+                <tbody id="demographics"><tr><td colspan="3">No data</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </section>
 
@@ -302,25 +343,31 @@
           <div class="two-col">
             <div class="card-table">
               <header>Shift Reports / Z-Reports</header>
-              <table>
-                <thead><tr><th>Shift</th><th>Cash Count</th><th>Sales</th></tr></thead>
-                <tbody id="shiftReports"><tr><td colspan="3">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Shift</th><th>Cash Count</th><th>Sales</th></tr></thead>
+                  <tbody id="shiftReports"><tr><td colspan="3">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
             <div class="card-table">
               <header>Returned / Refunded products</header>
-              <table>
-                <thead><tr><th>Date</th><th>Txn ID</th><th>Employee</th><th>Reason</th></tr></thead>
-                <tbody id="voids"><tr><td colspan="4">No data</td></tr></tbody>
-              </table>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Date</th><th>Txn ID</th><th>Employee</th><th>Reason</th></tr></thead>
+                  <tbody id="voids"><tr><td colspan="4">No data</td></tr></tbody>
+                </table>
+              </div>
             </div>
           </div>
           <div class="card-table">
             <header>Staff Hours</header>
-            <table>
-              <thead><tr><th>Employee</th><th>Hours</th><th>Shifts</th></tr></thead>
-              <tbody id="staffHours"><tr><td colspan="3">No data</td></tr></tbody>
-            </table>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Employee</th><th>Hours</th><th>Shifts</th></tr></thead>
+                <tbody id="staffHours"><tr><td colspan="3">No data</td></tr></tbody>
+              </table>
+            </div>
           </div>
         </section>
 
