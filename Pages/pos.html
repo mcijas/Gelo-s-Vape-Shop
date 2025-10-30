@@ -494,6 +494,9 @@
         // Printer Settings Dialog
         function showPrinterSettings() {
           const currentWidth = localStorage.getItem('pos_receipt_width') || '58mm';
+          const currentMode = localStorage.getItem('pos_printer_mode') || 'browser';
+          const currentQzPrinter = localStorage.getItem('pos_qz_printer') || '';
+          const currentAuto = (localStorage.getItem('pos_auto_print') || 'true') === 'true';
           const storeInfo = JSON.parse(localStorage.getItem('store_info') || '{}');
           
           const dialog = document.createElement('div');
@@ -514,6 +517,31 @@
                   <option value="58mm" ${currentWidth === '58mm' ? 'selected' : ''}>58mm (XP-58IIH)</option>
                   <option value="80mm" ${currentWidth === '80mm' ? 'selected' : ''}>80mm (Standard)</option>
                 </select>
+              </div>
+
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Printing Mode:</label>
+                <select id="printerMode" style="width: 100%; padding: 8px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px;">
+                  <option value="browser" ${currentMode === 'browser' ? 'selected' : ''}>Browser (HTML)</option>
+                  <option value="qz" ${currentMode === 'qz' ? 'selected' : ''}>QZ Tray (ESC/POS)</option>
+                </select>
+                <small style="display:block; opacity:.8; margin-top:6px;">Use Browser for non-thermal printers; use QZ Tray for ESC/POS thermal printers.</small>
+              </div>
+
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">QZ Printer Name (optional):</label>
+                <input type="text" id="qzPrinterName" value="${currentQzPrinter}" 
+                       placeholder="e.g. XPrinter XP-58IIH" 
+                       style="width: 100%; padding: 8px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px;">
+              </div>
+
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Auto-print After Checkout:</label>
+                <label style="display:flex; align-items:center; gap:8px;">
+                  <input type="checkbox" id="autoPrint" ${currentAuto ? 'checked' : ''} />
+                  <span>Automatically print receipt after a successful purchase</span>
+                </label>
+                <small style="display:block; opacity:.8; margin-top:6px;">In Browser mode, ensure the Windows driver uses the correct paper size (58mm) to avoid print dialog loops.</small>
               </div>
               
               <div style="margin-bottom: 16px;">
@@ -550,9 +578,16 @@
             const name = dialog.querySelector('#storeName').value.trim();
             const address = dialog.querySelector('#storeAddress').value.trim();
             const phone = dialog.querySelector('#storePhone').value.trim();
+            const modeEl = dialog.querySelector('#printerMode');
+            const mode = modeEl ? modeEl.value : 'browser';
+            const qzName = (dialog.querySelector('#qzPrinterName')?.value || '').trim();
+            const auto = !!dialog.querySelector('#autoPrint')?.checked;
             
             localStorage.setItem('pos_receipt_width', width);
             localStorage.setItem('store_info', JSON.stringify({ name, address, phone }));
+            localStorage.setItem('pos_printer_mode', mode);
+            if (qzName) localStorage.setItem('pos_qz_printer', qzName); else localStorage.removeItem('pos_qz_printer');
+            localStorage.setItem('pos_auto_print', auto ? 'true' : 'false');
             
             // Update receipt CSS width
             updateReceiptWidth(width);
@@ -598,9 +633,10 @@
         function showTestReceipt() {
           // Get the receipt width setting for the URL parameter
           const receiptWidth = localStorage.getItem('pos_receipt_width') || '58mm';
+          const auto = (localStorage.getItem('pos_auto_print') || 'true') === 'true';
           
           // Open the receipt.php file with width parameter and autoprint
-          const receiptUrl = `../receipt.php?width=${receiptWidth}&autoprint=true&test=true`;
+          const receiptUrl = `../receipt.php?width=${receiptWidth}&autoprint=${auto ? 'true' : 'false'}&test=true`;
           window.open(receiptUrl, '_blank', 'width=380,height=740');
         }
 
@@ -771,9 +807,18 @@
             // Store transaction data temporarily for receipt.php to access
             sessionStorage.setItem('current_receipt_data', JSON.stringify(receiptTxn));
             
-            // Open receipt.php with parameters
-            const receiptUrl = `../receipt.php?width=${receiptWidth}&autoprint=true&txn_id=${receiptTxn.id}`;
-            window.open(receiptUrl, '_blank', 'width=380,height=740');
+            // Decide printing path: Browser (HTML) for external printers; QZ for ESC/POS
+            const mode = localStorage.getItem('pos_printer_mode') || 'browser';
+            const auto = (localStorage.getItem('pos_auto_print') || 'true') === 'true';
+            if (mode === 'qz') {
+              try { printViaQZTray(receiptTxn); } catch (err) {
+                const receiptUrl = `../receipt.php?width=${receiptWidth}&autoprint=${auto ? 'true' : 'false'}&txn_id=${receiptTxn.id}`;
+                window.open(receiptUrl, '_blank', 'width=380,height=740');
+              }
+            } else {
+              const receiptUrl = `../receipt.php?width=${receiptWidth}&autoprint=${auto ? 'true' : 'false'}&txn_id=${receiptTxn.id}`;
+              window.open(receiptUrl, '_blank', 'width=380,height=740');
+            }
 
             // Mirror to localStorage to keep other pages (customers/reports) working
             try {
@@ -821,14 +866,22 @@
             return qz.printers.find();
           }).then((printers) => {
             // Look for thermal printer (common names)
-            const thermalPrinter = printers.find(p => 
+            const preferred = (localStorage.getItem('pos_qz_printer') || '').toLowerCase();
+            const thermalPrinter = (preferred && printers.find(p => p.toLowerCase() === preferred)) || printers.find(p => 
               p.toLowerCase().includes('xprinter') || 
+              p.toLowerCase().includes('officom') ||
+              p.toLowerCase().includes('oc-58') ||
               p.toLowerCase().includes('thermal') ||
               p.toLowerCase().includes('receipt') ||
               p.toLowerCase().includes('pos')
             );
             qzPrinter = thermalPrinter || printers[0]; // Use first printer as fallback
             console.log('Selected printer:', qzPrinter);
+            const nameLc = String(qzPrinter||'').toLowerCase();
+            const isThermal = nameLc.includes('xprinter') || nameLc.includes('officom') || nameLc.includes('oc-58') || nameLc.includes('thermal') || nameLc.includes('receipt') || nameLc.includes('pos');
+            if (!isThermal) {
+              try { localStorage.setItem('pos_printer_mode', 'browser'); } catch {}
+            }
           }).catch((err) => {
             console.warn('QZ Tray connection failed:', err);
             qzReady = false;
@@ -842,7 +895,8 @@
             return printReceipt(txn);
           }
 
-          const fmt = (n)=> `₱${Number(n||0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          // Use ASCII-friendly currency prefix to avoid codepage issues
+          const fmt = (n)=> `PHP ${Number(n||0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
           const d = new Date(txn.date);
           const dateStr = d.toLocaleDateString('en-CA');
           const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -856,42 +910,50 @@
           const storeAddress = storeInfo.address || '';
           const storePhone = storeInfo.phone || '';
 
-          // ESC/POS commands for thermal printer
+          // ESC/POS commands for thermal printer — set sane defaults for 58mm/Font B
           let escpos = '';
           escpos += '\x1B\x40'; // Initialize printer
+          escpos += '\x1B\x32'; // Default line spacing
+          escpos += '\x1B\x74\x00'; // Code page: CP437 (ASCII)
+          escpos += '\x1B\x4D\x01'; // Font B (narrow, ~42 chars on 58mm)
+          escpos += '\x1D\x21\x00'; // Character size: normal
+          escpos += '\x1D\x4C\x00\x00'; // Left margin = 0
           escpos += '\x1B\x61\x01'; // Center align
           escpos += storeName + '\n';
           if (storeAddress) escpos += storeAddress + '\n';
           if (storePhone) escpos += storePhone + '\n';
-          escpos += '----------------------------------------\n';
+          escpos += '------------------------------------------\n';
           escpos += '\x1B\x61\x00'; // Left align
           escpos += `Date: ${dateStr}     Time: ${timeStr}\n`;
           escpos += `Receipt: #${String(txn.ref||txn.id||'')}\n`;
           escpos += `Cashier: ${txn.cashier || '-'}\n`;
-          escpos += '----------------------------------------\n';
-          escpos += 'Item                 Qty     Price\n';
-          escpos += '----------------------------------------\n';
+          escpos += '------------------------------------------\n';
+          // Column header for 58mm, Font B (~42 chars): 24|4|14
+          escpos += `${'Item'.padEnd(24)}${'Qty'.padStart(4)}${'Amount'.padStart(14)}\n`;
+          escpos += '------------------------------------------\n';
           
+          const colItem = 24, colQty = 4, colPrice = 14;
           (txn.items||[]).forEach(it => {
-            const name = (it.product || '').substring(0, 20).padEnd(20);
-            const qty = String(Number(it.qty||0)).padStart(3);
-            const price = fmt((Number(it.qty)||0)*(Number(it.price)||0)).padStart(8);
-            escpos += `${name} ${qty} ${price}\n`;
+            const nameRaw = (it.product || '').replace(/\s+/g,' ').trim();
+            const name = nameRaw.length > (colItem) ? nameRaw.substring(0, colItem) : nameRaw;
+            const qty = String(Number(it.qty||0));
+            const price = fmt((Number(it.qty)||0)*(Number(it.price)||0));
+            escpos += `${name.padEnd(colItem)}${qty.padStart(colQty)}${price.padStart(colPrice)}\n`;
           });
           
-          escpos += '========================================\n';
-          escpos += `Subtotal:                    ${fmt(subtotal)}\n`;
-          if (discount > 0) escpos += `Discount:                   -${fmt(discount)}\n`;
-          escpos += `TOTAL:                       ${fmt(grand)}\n`;
-          escpos += '----------------------------------------\n';
+          escpos += '==========================================\n';
+          escpos += `${'Subtotal:'.padEnd(28)}${fmt(subtotal).padStart(14)}\n`;
+          if (discount > 0) escpos += `${'Discount:'.padEnd(28)}${('-'+fmt(discount)).padStart(14)}\n`;
+          escpos += `${'TOTAL:'.padEnd(28)}${fmt(grand).padStart(14)}\n`;
+          escpos += '------------------------------------------\n';
           escpos += '\x1B\x61\x01'; // Center align
           escpos += `Payment: ${txn.paymentMethod}\n`;
-          escpos += '----------------------------------------\n';
+          escpos += '------------------------------------------\n';
           escpos += 'Thank you for shopping!\n';
           escpos += 'Come back soon!\n\n\n';
           escpos += '\x1D\x56\x41'; // Cut paper
 
-          const config = qz.configs.create(qzPrinter);
+          const config = qz.configs.create(qzPrinter, { rasterize: true, perSpool: true });
           const data = [{
             type: 'raw',
             format: 'plain',
@@ -1060,12 +1122,14 @@
             </html>
           `);
           win.document.close();
-          // Trigger print when the new window finishes loading
+          // Trigger print based on Auto-print setting
           try {
-            win.addEventListener('load', () => { try { win.focus(); win.print(); } catch {} });
+            const auto = (localStorage.getItem('pos_auto_print') || 'true') === 'true';
+            if (auto) {
+              win.addEventListener('load', () => { try { win.focus(); win.print(); } catch {} });
+            }
           } catch {
-            // Fallback in case 'load' listener isn't available
-            setTimeout(() => { try { win.focus(); win.print(); } catch {} }, 300);
+            // No-op
           }
         }
 
