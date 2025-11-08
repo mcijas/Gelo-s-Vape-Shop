@@ -657,16 +657,25 @@
           try {
             const tidStr = prompt('Enter completed Transaction ID to refund (numeric ID from receipt):');
             if (tidStr === null) return;
-            const tid = parseInt(tidStr, 10);
-            if (!tid || tid <= 0) { showNotification('Invalid transaction ID', 'warning'); return; }
-
+            
+            let tid;
             // Load the original transaction (client-side filter from list)
             let txn = null;
             try {
               const res = await fetch('../api/transactions.php', { credentials: 'same-origin' });
               const data = await res.json();
               if (res.ok && data.ok && Array.isArray(data.data)) {
-                txn = data.data.find(t => Number(t.id) === tid);
+                // Try to find transaction by numeric ID first, then by reference
+                const parsedTid = Number(tidStr);
+                if (!isNaN(parsedTid) && isFinite(parsedTid)) {
+                  txn = data.data.find(t => Number(t.id) === parsedTid);
+                  if (txn) tid = parsedTid;
+                }
+                // If not found by numeric ID, try matching by reference (TXN-...)
+                if (!txn) {
+                  txn = data.data.find(t => t.ref === tidStr);
+                  if (txn) tid = Number(txn.id);
+                }
               }
             } catch (_) {}
 
@@ -725,11 +734,33 @@
           try {
             const tidStr = prompt('Enter Transaction ID to void (numeric ID from receipt):');
             if (tidStr === null) return;
-            const tid = parseInt(tidStr, 10);
-            if (!tid || tid <= 0) { showNotification('Invalid transaction ID', 'warning'); return; }
+            
+            let tid;
+            // Find the transaction first to get the correct numeric ID
+            let txn = null;
+            try {
+              const res = await fetch('../api/transactions.php', { credentials: 'same-origin' });
+              const data = await res.json();
+              if (res.ok && data.ok && Array.isArray(data.data)) {
+                // Try to find transaction by numeric ID first, then by reference
+                const parsedTid = Number(tidStr);
+                if (!isNaN(parsedTid) && isFinite(parsedTid)) {
+                  txn = data.data.find(t => Number(t.id) === parsedTid);
+                  if (txn) tid = parsedTid;
+                }
+                // If not found by numeric ID, try matching by reference (TXN-...)
+                if (!txn) {
+                  txn = data.data.find(t => t.ref === tidStr);
+                  if (txn) tid = Number(txn.id);
+                }
+              }
+            } catch (_) {}
+
+            if (!txn) { showNotification('Transaction not found', 'warning'); return; }
+            
             const reason = prompt('Reason for void/cancel:');
             if (reason === null || String(reason).trim() === '') { showNotification('Void reason is required', 'warning'); return; }
-            const res = await fetch('../api/void_transaction.php', { method: 'POST', headers: { 'Content-Type':'application/json' }, credentials: 'same-origin', body: JSON.stringify({ transaction_id: tid, reason: String(reason).trim() }) });
+            const res = await fetch('../api/void_transaction.php', { method: 'POST', headers: { 'Content-Type':'application/json' }, credentials: 'same-origin', body: JSON.stringify({ transaction_id: txn.id, reason: String(reason).trim() }) });
             const data = await res.json();
             if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to void transaction');
             showNotification(`Transaction ${tid} voided`, 'success');

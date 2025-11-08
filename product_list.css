@@ -84,6 +84,17 @@ thead th:nth-child(6), tbody td:nth-child(6) { width: 140px; text-align: center;
   color: #ffffff;
 }
 
+/* Added missing styles for moderate and good stock levels */
+.stock-badge.moderate-stock {
+  background: #fde047; /* amber/yellow for moderate */
+  color: #1f2937; /* dark text for contrast */
+}
+
+.stock-badge.good-stock {
+  background: #22c55e; /* green for good */
+  color: #ffffff;
+}
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }

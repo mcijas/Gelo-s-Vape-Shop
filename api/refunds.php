@@ -86,7 +86,7 @@ try {
 
   $soldMap = [];
   foreach ($soldItems as $si) {
-    $key = $si['code'] ? ('CODE:'+strval($si['code'])) : ('NAME:'+strval($si['product']));
+    $key = $si['code'] ? ('CODE:'.strval($si['code'])) : ('NAME:'.strval($si['product']));
     $soldMap[$key] = $si;
   }
 
@@ -115,11 +115,11 @@ try {
     // locate sold item
     $si = null;
     if ($reqCode) {
-      $k = 'CODE:'.$reqCode;
+      $k = 'CODE:'.strval($reqCode);
       if (isset($soldMap[$k])) $si = $soldMap[$k];
     }
     if (!$si && $reqProduct) {
-      $k = 'NAME:'.$reqProduct;
+      $k = 'NAME:'.strval($reqProduct);
       if (isset($soldMap[$k])) $si = $soldMap[$k];
     }
     if (!$si) { throw new Exception('Item not found in original transaction: '.($reqProduct ?: $reqCode ?: 'unknown')); }

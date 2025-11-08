@@ -380,8 +380,8 @@ try {
               <header>Returned / Refunded products</header>
               <div class="table-scroll">
                 <table>
-                  <thead><tr><th>Date</th><th>Txn ID</th><th>Employee</th><th>Reason</th></tr></thead>
-                  <tbody id="voids"><tr><td colspan="4">No data</td></tr></tbody>
+                  <thead><tr><th>Date</th><th>Type</th><th>Txn ID</th><th>Employee</th><th>Reason</th><th>Amount</th></tr></thead>
+                  <tbody id="voids"><tr><td colspan="6">No data</td></tr></tbody>
                 </table>
               </div>
             </div>
@@ -1603,9 +1603,68 @@ try {
             function renderVoids(voids) {
               const body = document.getElementById('voids');
               if (!body) return;
-              const rows = (voids || []);
-              if (!rows.length) { body.innerHTML = '<tr><td colspan="4">No data</td></tr>'; return; }
-              body.innerHTML = rows.map(v => `<tr><td>${new Date(v.voided_at).toLocaleString()}</td><td>${v.transaction_id}</td><td>${v.employee_name}</td><td>${(v.reason||'').replace(/</g,'&lt;')}</td></tr>`).join('');
+              
+              // Fetch both voids and refunds data
+              Promise.all([getVoids(), getRefunds()]).then(([voidsData, refunds]) => {
+                const voidRows = (voidsData || []);
+                const refundRows = (refunds || []);
+                
+                // Combine voids and refunds into a single array
+                const allRows = [];
+                
+                // Add voids
+                voidRows.forEach(v => {
+                  allRows.push({
+                    date: v.voided_at,
+                    type: 'Void',
+                    transaction_id: v.transaction_id,
+                    employee: v.employee_name,
+                    reason: v.reason || '',
+                    amount: null
+                  });
+                });
+                
+                // Add refunds
+                refundRows.forEach(r => {
+                  allRows.push({
+                    date: r.refund_date,
+                    type: 'Refund',
+                    transaction_id: r.transaction_id,
+                    employee: r.employee_name || '—',
+                    reason: r.reason || '',
+                    amount: r.refund_amount
+                  });
+                });
+                
+                // Sort by date (newest first)
+                allRows.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                
+                if (!allRows.length) { 
+                  body.innerHTML = '<tr><td colspan="6">No data</td></tr>'; 
+                  return; 
+                }
+                
+                body.innerHTML = allRows.map(item => {
+                  return `<tr>
+                    <td>${new Date(item.date).toLocaleString()}</td>
+                    <td>${item.type}</td>
+                    <td>${item.transaction_id}</td>
+                    <td>${item.employee}</td>
+                    <td>${(item.reason||'').replace(/</g,'&lt;')}</td>
+                    <td>${item.amount ? fmtPeso(parseFloat(item.amount)) : '—'}</td>
+                  </tr>`;
+                }).join('');
+              }).catch(err => {
+                console.error('Error fetching refunds:', err);
+                // Fallback to just showing voids if refunds fetch fails
+                const rows = (voids || []);
+                if (!rows.length) { 
+                  body.innerHTML = '<tr><td colspan="4">No data</td></tr>'; 
+                  return; 
+                }
+                body.innerHTML = rows.map(v => `<tr><td>${new Date(v.voided_at).toLocaleString()}</td><td>Void</td><td>${v.transaction_id}</td><td>${v.employee_name}</td><td>${(v.reason||'').replace(/</g,'&lt;')}</td><td>—</td></tr>`).join('');
+              });
             }
             function renderStaffHours(records) {
               const body = document.getElementById('staffHours');
