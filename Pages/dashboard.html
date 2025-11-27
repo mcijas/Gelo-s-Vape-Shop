@@ -48,9 +48,7 @@
             <li>
               <a href="settings.html"><span class="icon">⚙️</span><span class="label">Settings</span></a>
             </li>
-            <li id="usersNav" style="display: none;">
-              <a href="users.html"><span class="icon">👤</span><span class="label">Users</span></a>
-            </li>
+            
           </ul>
         </nav>
       </div>
@@ -105,18 +103,6 @@
        <script src="../chart.umd.min.js"></script>
        <script src="../assets/js/global.js"></script>
       <script>
-        // Show Users nav for admin only
-        (async function() {
-          try {
-            const res = await fetch('../api/auth/me.php', { credentials: 'same-origin' });
-            const data = await res.json();
-            if (data.ok && data.user.role === 'admin') {
-              document.getElementById('usersNav').style.display = 'block';
-            }
-          } catch (err) {
-            console.error('Failed to check user role:', err);
-          }
-        })();
         (async function(){
           // Show connection error message
           function showConnectionError() {
