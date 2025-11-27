@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>Reports Overview - Dashboard</title>
+    <link rel="stylesheet" href="../assets/css/global.css" />
+    <link rel="stylesheet" href="../assets/css/inventory.css" />
+    <link rel="stylesheet" href="../assets/css/reports.css" />
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <div class="brand"><img src="../gelo.png" alt="Gelo's Vape Shop logo" /></div>
+          <nav class="nav">
+            <ul class="nav-list">
+              <li><a href="dashboard.html"><span class="icon">🏠</span><span class="label">Dashboard</span></a></li>
+              <li class="has-submenu">
+                <a href="inventory.html"><span class="icon">📦</span><span class="label">Inventory</span></a>
+                <ul class="submenu">
+                  <li><a href="product_list.html">Product List</a></li>
+                </ul>
+              </li>
+              <li><a href="pos.html"><span class="icon">🧾</span><span class="label">POS</span></a></li>
+              <li><a href="customers.html"><span class="icon">👥</span><span class="label">Customer</span></a></li>
+              <li><a href="suppliers.html"><span class="icon">🚚</span><span class="label">Suppliers</span></a></li>
+              <li class="has-submenu">
+                <a href="../reports.php" class="active"><span class="icon">📊</span><span class="label">Reports</span></a>
+                <ul class="submenu">
+                  <li><a href="../reports.php#sales-reports">Sales Reports</a></li>
+                  <li><a href="../reports.php#inventory-reports">Inventory Reports</a></li>
+                  <li><a href="../reports.php#financial-reports">Financial Reports</a></li>
+                  <li><a href="../reports.php#supplier-reports">Supplier Reports</a></li>
+                  <li><a href="../reports.php#customer-reports">Customer Reports</a></li>
+                  <li><a href="../reports.php#operational-reports">Operational Reports</a></li>
+                </ul>
+              </li>
+              <li><a href="settings.html"><span class="icon">⚙️</span><span class="label">Settings</span></a></li>
+            </ul>
+          </nav>
+        </div>
+        <a class="logout" href="../index.html"><span class="icon">⎋</span><span class="label">Logout</span></a>
+      </aside>
+
+      <main class="main-content">
+        <h1 class="page-title">Reports Overview</h1>
+        <p style="color:#a3a3a3">This static page links to the dynamic reports in reports.php</p>
+      </main>
+    </div>
+    <script src="../assets/js/global.js"></script>
+  </body>
+</html>

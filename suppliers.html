@@ -4,8 +4,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta charset="utf-8" />
     <title>Suppliers</title>
-    <link rel="stylesheet" href="global.css" />
-    <link rel="stylesheet" href="product_list.css" />
+    <link rel="stylesheet" href="assets/css/global.css" />
+    <link rel="stylesheet" href="assets/css/product_list.css" />
     <style>
       .main-content { padding-top: 16px; }
       .toolbar-actions { margin-left: auto; display: flex; gap: 8px; }
@@ -648,7 +648,7 @@
       </div>
     </div>
 
-    <script src="global.js"></script>
+    <script src="assets/js/global.js"></script>
     <script>
       // Suppliers data will be loaded from the database
       let suppliers = [];
@@ -836,14 +836,13 @@
              const lod = s.last_order_date ? (String(s.last_order_date).includes('T') ? String(s.last_order_date).split('T')[0] : String(s.last_order_date).split(' ')[0]) : '—';
              return `
                <tr data-id="${s.id}" data-categories="${cats}">
-                 <td>${s.name}</td>
+                <td><span class="supplier-name" style="cursor:pointer">${s.name}</span></td>
                  <td>${s.email||''}</td>
                  <td><div class="category-tags">${tags}</div></td>
                  <td>${lod}</td>
                  <td><span class="status-badge active">Active</span></td>
                  <td style="text-align:center">
                    <div class="actions">
-                     <button class="action-btn view-details" title="View Details">👁️</button>
                      <button class="action-btn edit-supplier" title="Edit">✏️</button>
                      <button class="action-btn delete-supplier" title="Delete">🗑️</button>
                    </div>
@@ -907,13 +906,13 @@
        
        // Global function to wire row buttons
        function wireRowButtons(){
-         document.querySelectorAll('.view-details').forEach(btn => {
-           btn.addEventListener('click', (e) => {
-             const row = e.target.closest('tr');
-             const supplierName = row.cells[0].textContent;
-             openSupplierDetails(supplierName);
-           });
-         });
+        document.querySelectorAll('#suppliersTable tbody .supplier-name').forEach(el => {
+          el.addEventListener('click', (e) => {
+            const row = e.target.closest('tr');
+            const supplierName = row.cells[0].textContent;
+            openSupplierDetails(supplierName);
+          });
+        });
          document.querySelectorAll('.edit-supplier').forEach(btn => {
            btn.addEventListener('click', (e) => {
              const row = e.target.closest('tr');
@@ -1282,7 +1281,7 @@
                 <div class="archive-item">
                   <div class="archive-item-header">
                     <div class="archive-item-name">${supplier.name}</div>
-                    <div class="archive-item-date">Deleted: ${new Date(supplier.created_at).toLocaleDateString()}</div>
+                    <div class="archive-item-date">Deleted: ${supplier.deleted_at ? new Date(supplier.deleted_at).toLocaleDateString() : (supplier.created_at ? new Date(supplier.created_at).toLocaleDateString() : '—')}</div>
                   </div>
                   <div class="archive-item-email">${supplier.email || ''}</div>
                   <div class="archive-item-categories">${categoryTags}</div>
@@ -1381,6 +1380,6 @@
         }
       }
     </script>
-    <script src="global.js"></script>
+    
   </body>
 </html>

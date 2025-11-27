@@ -4,8 +4,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta charset="utf-8" />
     <title>Customers</title>
-    <link rel="stylesheet" href="global.css" />
-    <link rel="stylesheet" href="product_list.css" />
+    <link rel="stylesheet" href="assets/css/global.css" />
+    <link rel="stylesheet" href="assets/css/product_list.css" />
     <style>
       .main-content { padding-top: 12px; }
       .page-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
@@ -401,7 +401,7 @@
               return `
               <tr data-id="${c.id}">
                 <td>C${String(c.id).padStart(3,'0')}</td>
-                <td><div class="name-cell"><img class="avatar" src="img/img.svg" alt="${c.name} avatar" />${c.name}</div></td>
+                <td><div class="name-cell"><img class="avatar" src="assets/svg/image.svg" alt="${c.name} avatar" />${c.name}</div></td>
                 <td>${c.email||'—'}</td>
                 <td>${c.phone||'—'}</td>
                 <td>${lastPurchase}</td>
@@ -705,6 +705,6 @@
         window.addEventListener('storage', (e)=>{ if (e.key === 'transactions') publishCustomers(); });
       })();
     </script>
-    <script src="global.js"></script>
+    <script src="assets/js/global.js"></script>
   </body>
 </html>

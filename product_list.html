@@ -3,8 +3,8 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="global.css" />
-    <link rel="stylesheet" href="product_list.css" />
+    <link rel="stylesheet" href="assets/css/global.css" />
+    <link rel="stylesheet" href="assets/css/product_list.css" />
   </head>
   <body>
     <div class="container">
@@ -172,7 +172,7 @@
             const content = document.getElementById('productDetailsContent');
             content.innerHTML = `
               <div style="margin-bottom:15px; text-align:center;">
-                <img src="${product.image_url || '../img/rectangle-10.png'}" alt="${product.name}" style="width:100%; max-width:200px; height:150px; object-fit:cover; border-radius:8px; margin-bottom:10px;">
+                <img src="${product.image_url ? product.image_url : 'gelo.png'}" alt="${product.name}" style="width:100%; max-width:200px; height:150px; object-fit:cover; border-radius:8px; margin-bottom:10px;">
               </div>
               <div style="margin-bottom:10px;"><strong>Name:</strong> ${product.name}</div>
               <div style="margin-bottom:10px;"><strong>Category:</strong> ${product.category || '—'}</div>
@@ -206,7 +206,7 @@
               const badgeText = (p.stock<=5) ? 'Critical' : (p.stock<=15) ? 'Low' : (p.stock<=30) ? 'Moderate' : 'Good';
               return `
                 <tr data-product-id="${p.id}" style="cursor:pointer;">
-                  <td><img class="thumb" src="${p.image_url ? p.image_url : '../img/rectangle-10.png'}" alt="${p.name}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;"></td>
+                  <td><img class="thumb" src="${p.image_url ? p.image_url : 'gelo.png'}" alt="${p.name}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;"></td>
                   <td>${p.name}</td>
                   <td>${p.category || '—'}</td>
                   <td>${fmt(p.price)}</td>
@@ -254,6 +254,6 @@
         // Initialize
         loadProducts();
       </script>
-      <script src="global.js"></script>
+      <script src="assets/js/global.js"></script>
   </body>
 </html>

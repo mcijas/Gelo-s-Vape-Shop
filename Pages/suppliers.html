@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>Suppliers</title>
+    <link rel="stylesheet" href="../assets/css/global.css" />
+    <link rel="stylesheet" href="../assets/css/product_list.css" />
+  </head>
+  <body>
+    <div class="container">
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <div class="brand"><img src="../gelo.png" alt="Gelo's Vape Shop logo" /></div>
+          <nav class="nav">
+            <ul class="nav-list">
+              <li><a href="dashboard.html"><span class="icon">🏠</span><span class="label">Dashboard</span></a></li>
+              <li class="has-submenu">
+                <a href="inventory.html"><span class="icon">📦</span><span class="label">Inventory</span></a>
+                <ul class="submenu">
+                  <li><a href="product_list.html">Product List</a></li>
+                </ul>
+              </li>
+              <li><a href="pos.html"><span class="icon">🧾</span><span class="label">POS</span></a></li>
+              <li><a href="customers.html"><span class="icon">👥</span><span class="label">Customer</span></a></li>
+              <li><a class="active" href="suppliers.html"><span class="icon">🚚</span><span class="label">Suppliers</span></a></li>
+              <li class="has-submenu">
+                <a href="../reports.php"><span class="icon">📊</span><span class="label">Reports</span></a>
+                <ul class="submenu">
+                  <li><a href="../reports.php#sales-reports">Sales Reports</a></li>
+                  <li><a href="../reports.php#inventory-reports">Inventory Reports</a></li>
+                  <li><a href="../reports.php#financial-reports">Financial Reports</a></li>
+                  <li><a href="../reports.php#supplier-reports">Supplier Reports</a></li>
+                  <li><a href="../reports.php#customer-reports">Customer Reports</a></li>
+                  <li><a href="../reports.php#operational-reports">Operational Reports</a></li>
+                </ul>
+              </li>
+              <li><a href="settings.html"><span class="icon">⚙️</span><span class="label">Settings</span></a></li>
+            </ul>
+          </nav>
+        </div>
+        <a href="../index.html" class="logout"><span class="icon">⎋</span><span class="label">Logout</span></a>
+      </aside>
+
+      <main class="main-content">
+        <section class="table-card">
+          <header class="page-title">Suppliers</header>
+          <div class="toolbar">
+            <div class="search-bar">
+              <input id="supplierSearch" type="search" placeholder="Search suppliers..." aria-label="Search suppliers" />
+              <button type="submit" aria-label="Search"><span class="icon search"></span></button>
+            </div>
+            <button class="filter-btn" title="Filter" aria-label="Filter">⚙️</button>
+            <button class="add-product-btn" id="logDeliveryBtn"><span class="icon add" aria-hidden="true"></span>Log Delivery</button>
+          </div>
+          <table class="products-table" id="suppliersTable">
+            <thead>
+              <tr>
+                <th>Supplier ID</th>
+                <th style="text-align:left">Name</th>
+                <th style="text-align:left">Email</th>
+                <th style="text-align:left">Phone</th>
+                <th style="text-align:left">Last Order</th>
+                <th style="text-align:center">Status</th>
+                <th style="text-align:center">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="suppliersBody"><tr><td colspan="7" style="color:#a3a3a3; padding:12px">Loading suppliers...</td></tr></tbody>
+          </table>
+        </section>
+      </main>
+    </div>
+
+    <div id="logDeliveryModal" class="overlay" role="dialog" aria-modal="true" aria-label="Log Delivery">
+      <div class="modal">
+        <button class="close" type="button" aria-label="Close">×</button>
+        <div style="padding:16px">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div>
+              <label for="ldSupplier">Supplier</label>
+              <input id="ldSupplier" list="supplierNames" placeholder="Select supplier" />
+              <datalist id="supplierNames"></datalist>
+            </div>
+            <div>
+              <label for="ldDate">Delivery Date</label>
+              <input type="date" id="ldDate" />
+            </div>
+          </div>
+          <table class="products-table" id="deliveryTable">
+            <thead>
+              <tr><th style="width:40%">Product</th><th style="width:15%">Category</th><th style="width:15%">Barcode</th><th style="width:15%">Qty</th><th style="width:15%">Unit Cost</th></tr>
+            </thead>
+            <tbody id="deliveryBody"></tbody>
+          </table>
+          <div style="margin-top:12px; display:flex; gap:8px;">
+            <button id="addRowBtn" class="btn">Add Row</button>
+            <button id="saveDeliveryBtn" class="btn">Save Delivery</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function(){
+        const tbody = document.getElementById('suppliersBody');
+        const searchInput = document.getElementById('supplierSearch');
+        const logBtn = document.getElementById('logDeliveryBtn');
+        const overlay = document.getElementById('logDeliveryModal');
+        const closeBtn = overlay.querySelector('.close');
+        const supplierList = document.getElementById('supplierNames');
+        function openModal(){ overlay.classList.add('open'); document.querySelector('.container').classList.add('blurred'); }
+        function closeModal(){ overlay.classList.remove('open'); document.querySelector('.container').classList.remove('blurred'); }
+        closeBtn.addEventListener('click', closeModal);
+        overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeModal(); });
+        logBtn.addEventListener('click', openModal);
+
+        async function loadSuppliers(){
+          if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="color:#a3a3a3; padding:12px">Loading suppliers...</td></tr>';
+          try {
+            const res = await fetch('../api/suppliers.php');
+            const data = await res.json();
+            const suppliers = (res.ok && data.ok) ? (data.data||[]) : [];
+            tbody.innerHTML = suppliers.map(s=>`
+              <tr data-id="${s.id}">
+                <td>S${String(s.id).padStart(3,'0')}</td>
+                <td>${s.name}</td>
+                <td>${s.email||'—'}</td>
+                <td>${s.phone||'—'}</td>
+                <td>${s.last_order_date ? new Date(s.last_order_date).toLocaleString() : '—'}</td>
+                <td style="text-align:center"><span class="status-badge ${s.status==='active'?'active':''}">${s.status==='active'?'Active':'Deleted'}</span></td>
+                <td style="text-align:center"><div class="actions" style="justify-content:center">
+                  <button class="action-btn" data-action="archive">🗑️</button>
+                  <button class="action-btn" data-action="restore">♻️</button>
+                </div></td>
+              </tr>`).join('');
+            Array.from(tbody.querySelectorAll('tr')).forEach(row=>{
+              const id = Number(row.getAttribute('data-id'));
+              row.querySelector('[data-action="archive"]').addEventListener('click', async ()=>{
+                if (!confirm('Archive this supplier?')) return;
+                const r = await fetch('../api/suppliers.php', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, status:'deleted' })});
+                const d = await r.json(); if (!r.ok || !d.ok) return alert(d.error||'Failed');
+                loadSuppliers(); alert('Supplier archived');
+              });
+              row.querySelector('[data-action="restore"]').addEventListener('click', async ()=>{
+                if (!confirm('Restore this supplier?')) return;
+                const r = await fetch('../api/suppliers.php', { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, status:'active' })});
+                const d = await r.json(); if (!r.ok || !d.ok) return alert(d.error||'Failed');
+                loadSuppliers(); alert('Supplier restored');
+              });
+            });
+            supplierList.innerHTML = suppliers.map(s=>`<option value="${s.name}"></option>`).join('');
+            if (searchInput) {
+              searchInput.addEventListener('input', ()=>{
+                const q = (searchInput.value||'').toLowerCase();
+                Array.from(tbody.querySelectorAll('tr')).forEach(row=>{
+                  const name = (row.cells[1].textContent||'').toLowerCase();
+                  const email = (row.cells[2].textContent||'').toLowerCase();
+                  const phone = (row.cells[3].textContent||'').toLowerCase();
+                  row.style.display = (!q || name.includes(q) || email.includes(q) || phone.includes(q)) ? '' : 'none';
+                });
+              });
+            }
+          } catch (_) { if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="color:#a3a3a3; padding:12px">Unable to load suppliers.</td></tr>'; }
+        }
+        loadSuppliers();
+
+        const deliveryBody = document.getElementById('deliveryBody');
+        function addRow(){ const tr = document.createElement('tr'); tr.innerHTML = `
+          <td><input class="prod" list="productNames" placeholder="Product" /><datalist id="productNames"></datalist></td>
+          <td><input class="cat" placeholder="Category" /></td>
+          <td><input class="bar" placeholder="Barcode" /></td>
+          <td><input class="qty" type="number" min="0" step="1" value="0" /></td>
+          <td><input class="cost" type="number" min="0" step="0.01" value="0.00" /></td>`; deliveryBody.appendChild(tr); }
+        document.getElementById('addRowBtn').addEventListener('click', addRow);
+        addRow();
+        async function saveDelivery(){
+          const supplier = (document.getElementById('ldSupplier')?.value||'').trim();
+          const date = document.getElementById('ldDate')?.value;
+          if (!supplier || !date) return alert('Please select supplier and date.');
+          const rows = Array.from(deliveryBody.querySelectorAll('tr'));
+          const items = rows.map(r=>({ product:(r.querySelector('.prod')?.value||'').trim(), category:(r.querySelector('.cat')?.value||'').trim(), barcode:(r.querySelector('.bar')?.value||'').trim(), qty:Number(r.querySelector('.qty')?.value||0), unitCost:Number(r.querySelector('.cost')?.value||0) })).filter(x=>x.product && x.qty>0);
+          if (!items.length) return alert('Please add at least one item.');
+          try {
+            for (const it of items) {
+              const res = await fetch('../api/stock_in.php', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'same-origin', body: JSON.stringify({ supplier, product: it.product, barcode: it.barcode, category: it.category, qty: it.qty, unitCost: it.unitCost, date }) });
+              const data = await res.json().catch(()=>({ ok:false, error:'Invalid server response' }));
+              if (!res.ok || !data.ok) throw new Error(data.error || 'Failed to save some items');
+            }
+            const entries = JSON.parse(localStorage.getItem('stockMovements')||'[]');
+            items.forEach(it => { entries.push({ id: Date.now() + Math.random(), type: 'IN', date, supplier, product: it.product.trim(), category: it.category, qty: Number(it.qty), unitCost: Number(it.unitCost || 0) }); });
+            localStorage.setItem('stockMovements', JSON.stringify(entries));
+            closeModal();
+            alert(`Delivery logged for ${items.length} product(s).`);
+          } catch (e) { alert('Server error: ' + (e?.message || e)); }
+        }
+        document.getElementById('saveDeliveryBtn').addEventListener('click', saveDelivery);
+        async function loadProducts(){ try { const r = await fetch('../api/products.php'); const d = await r.json(); const items = (r.ok && d.ok) ? (d.data||[]) : []; const dl = document.getElementById('productNames'); if (dl) dl.innerHTML = items.map(p=>`<option value="${p.name}"></option>`).join(''); } catch(_){} }
+        loadProducts();
+      })();
+    </script>
+    <script src="../assets/js/global.js"></script>
+  </body>
+</html>

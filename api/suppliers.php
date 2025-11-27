@@ -53,6 +53,7 @@ ensureColumnExists($pdo, 'suppliers', 'notes', 'TEXT DEFAULT NULL');
 ensureColumnExists($pdo, 'suppliers', 'status', "ENUM('active','deleted') DEFAULT 'active'");
 ensureColumnExists($pdo, 'suppliers', 'created_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP');
 ensureColumnExists($pdo, 'suppliers', 'last_order_date', 'DATETIME DEFAULT NULL');
+ensureColumnExists($pdo, 'suppliers', 'deleted_at', 'DATETIME DEFAULT NULL');
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -61,7 +62,7 @@ if ($method === 'GET') {
   if ($status !== 'active' && $status !== 'deleted') $status = 'active';
   try {
     // Prefer dynamic last_order_date from stock_movements (IN) and fall back to stored column
-    $sql = "SELECT s.id, s.name, s.email, s.phone, s.address, s.categories, s.notes, s.status, s.created_at,
+    $sql = "SELECT s.id, s.name, s.email, s.phone, s.address, s.categories, s.notes, s.status, s.created_at, s.deleted_at,
                    COALESCE(s.last_order_date, sm.last_order_date) AS last_order_date
             FROM suppliers s
             LEFT JOIN (
@@ -86,7 +87,7 @@ if ($method === 'GET') {
   } catch (Throwable $e) {
     // Fallback if stock_movements table is missing or join fails
     try {
-      $stmt = $pdo->prepare("SELECT id, name, email, phone, address, categories, notes, status, created_at, last_order_date FROM suppliers WHERE status = ? ORDER BY name");
+      $stmt = $pdo->prepare("SELECT id, name, email, phone, address, categories, notes, status, created_at, deleted_at, last_order_date FROM suppliers WHERE status = ? ORDER BY name");
       $stmt->execute([$status]);
       $rows = $stmt->fetchAll();
       foreach ($rows as &$r) {
@@ -137,7 +138,12 @@ if ($method === 'PATCH' || $method === 'PUT') {
     if (isset($input['address'])) { $updates[] = 'address = ?'; $params[] = trim($input['address']); }
     if (isset($input['categories'])) { $updates[] = 'categories = ?'; $params[] = json_encode(is_array($input['categories']) ? $input['categories'] : []); }
     if (isset($input['notes'])) { $updates[] = 'notes = ?'; $params[] = trim($input['notes']); }
-    if (isset($input['status'])) { $updates[] = 'status = ?'; $params[] = ($input['status'] === 'deleted' ? 'deleted' : 'active'); }
+    if (isset($input['status'])) {
+      $statusVal = ($input['status'] === 'deleted' ? 'deleted' : 'active');
+      $updates[] = 'status = ?';
+      $params[] = $statusVal;
+      if ($statusVal === 'deleted') { $updates[] = 'deleted_at = NOW()'; } else { $updates[] = 'deleted_at = NULL'; }
+    }
     if (isset($input['last_order_date'])) { $updates[] = 'last_order_date = ?'; $params[] = $input['last_order_date'] ? date('Y-m-d H:i:s', strtotime($input['last_order_date'])) : null; }
     if (empty($updates)) { http_response_code(400); echo json_encode(['ok'=>false,'error'=>'No fields to update']); exit; }
     $params[] = $id;

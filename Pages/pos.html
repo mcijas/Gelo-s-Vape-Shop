@@ -4,8 +4,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta charset="utf-8" />
     <title>POS System - Gelo's Vape Shop</title>
-    <link rel="stylesheet" href="../global.css" />
-    <link rel="stylesheet" href="../pos.css" />
+    <link rel="stylesheet" href="../assets/css/global.css" />
+    <link rel="stylesheet" href="../assets/css/pos.css" />
     <!-- QZ Tray for automatic thermal printing -->
     <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2.4/qz-tray.min.js"></script>
     <style>
@@ -51,12 +51,12 @@
               <li class="has-submenu">
                 <a href="inventory.html"><span class="icon">📦</span><span class="label">Inventory</span></a>
                 <ul class="submenu">
-                  <li><a href="../product_list.html">Product List</a></li>
+                  <li><a href="product_list.html">Product List</a></li>
                 </ul>
               </li>
               <li><a href="pos.html" class="active"><span class="icon">🧾</span><span class="label">POS</span></a></li>
-              <li><a href="../customers.html"><span class="icon">👥</span><span class="label">Customer</span></a></li>
-              <li><a href="../suppliers.html"><span class="icon">🚚</span><span class="label">Suppliers</span></a></li>
+              <li><a href="customers.html"><span class="icon">👥</span><span class="label">Customer</span></a></li>
+              <li><a href="suppliers.html"><span class="icon">🚚</span><span class="label">Suppliers</span></a></li>
               <li class="has-submenu">
                 <a href="../reports.php"><span class="icon">📊</span><span class="label">Reports</span></a>
                 <ul class="submenu">
@@ -68,7 +68,7 @@
                   <li><a href="../reports.php#operational-reports">Operational Reports</a></li>
                 </ul>
               </li>
-              <li><a href="../settings.html"><span class="icon">⚙️</span><span class="label">Settings</span></a></li>
+              <li><a href="settings.html"><span class="icon">⚙️</span><span class="label">Settings</span></a></li>
             </ul>
           </nav>
         </div>
@@ -159,7 +159,7 @@
         </section>
       </main>
     </div>
-    <script src="../global.js"></script>
+    <script src="../assets/js/global.js"></script>
     <script>
       (function() {
         const currency = (n) => `₱${n.toFixed(2)}`;
@@ -294,7 +294,7 @@
           card.setAttribute('data-stock', product.stock || 0);
           
           card.innerHTML = `
-            <img src="${product.image_url ? '../' + product.image_url : '../img/rectangle-10.png'}" alt="${product.name}" class="product-image" />
+            <img src="${product.image_url ? '../' + product.image_url : '../gelo.png'}" alt="${product.name}" class="product-image" />
             <h3 class="product-name">${product.name}</h3>
             <p class="product-stock">Stock: ${product.stock || 0}</p>
             <p class="product-price">₱${Number(product.price || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
@@ -1018,7 +1018,7 @@
 
           // Resolve absolute logo URL so it loads in about:blank
           const baseUrl = new URL('../', window.location.href).href; // e.g., http://localhost:8081/
-          const logoUrl = baseUrl + 'gelo.png';
+            const logoUrl = baseUrl + 'gelo.png';
           // Optional: store info from localStorage (customizable via Settings page in future)
           let storeInfo = {};
           try { storeInfo = JSON.parse(localStorage.getItem('store_info')||'{}'); } catch {}

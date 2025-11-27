@@ -19,10 +19,10 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta charset="utf-8" />
     <title>Reports Overview - Dashboard</title>
-    <link rel="stylesheet" href="global.css" />
-    <link rel="stylesheet" href="inventory.css" />
-    <link rel="stylesheet" href="reports.css" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="assets/css/global.css" />
+    <link rel="stylesheet" href="assets/css/inventory.css" />
+    <link rel="stylesheet" href="assets/css/reports.css" />
+    <link rel="stylesheet" href="assets/css/style.css" />
     <style>
       .table-scroll { max-height: 500px; overflow-y: auto; overflow-x: hidden; border-radius: 8px; }
       .table-scroll table { width: 100%; border-collapse: collapse; }
@@ -45,12 +45,12 @@ try {
               <li class="has-submenu">
                 <a href="Pages/inventory.html"><span class="icon">📦</span><span class="label">Inventory</span></a>
                 <ul class="submenu">
-                  <li><a href="product_list.html">Product List</a></li>
+                  <li><a href="Pages/product_list.html">Product List</a></li>
                 </ul>
               </li>
               <li><a href="Pages/pos.html"><span class="icon">🧾</span><span class="label">POS</span></a></li>
-              <li><a href="customers.html"><span class="icon">👥</span><span class="label">Customer</span></a></li>
-              <li><a href="suppliers.html"><span class="icon">🚚</span><span class="label">Suppliers</span></a></li>
+              <li><a href="Pages/customers.html"><span class="icon">👥</span><span class="label">Customer</span></a></li>
+              <li><a href="Pages/suppliers.html"><span class="icon">🚚</span><span class="label">Suppliers</span></a></li>
               <li class="has-submenu">
                 <a href="reports.php" class="active"><span class="icon">📊</span><span class="label">Reports</span></a>
                 <ul class="submenu">
@@ -62,12 +62,12 @@ try {
                   <li><a href="#" class="report-link" data-section="operational-reports">Operational Reports</a></li>
                 </ul>
               </li>
-              <li><a href="settings.html"><span class="icon">⚙️</span><span class="label">Settings</span></a></li>
+              <li><a href="Pages/settings.html"><span class="icon">⚙️</span><span class="label">Settings</span></a></li>
             </ul>
           </nav>
         </div>
         <a class="logout" href="index.html"><span class="icon">⎋</span><span class="label">Logout</span></a>
-      </aside>
+  </aside>
 
       <main class="main-content">
         <header class="page-header">
@@ -1690,5 +1690,6 @@ try {
         </script>
       </main>
     </div>
+    <script src="assets/js/global.js"></script>
   </body>
 </html>

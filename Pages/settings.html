@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="utf-8" />
+    <title>Settings - Admin Dashboard</title>
+    <link rel="stylesheet" href="../assets/css/global.css" />
+    <link rel="stylesheet" href="../assets/css/inventory.css" />
+    <link rel="stylesheet" href="../assets/css/settings.css" />
+    <link rel="stylesheet" href="../assets/css/style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <div class="brand"><img src="../gelo.png" alt="Gelo's Vape Shop logo" /></div>
+          <nav class="nav">
+            <ul class="nav-list">
+              <li><a href="dashboard.html"><span class="icon">🏠</span><span class="label">Dashboard</span></a></li>
+              <li class="has-submenu">
+                <a href="inventory.html"><span class="icon">📦</span><span class="label">Inventory</span></a>
+                <ul class="submenu">
+                  <li><a href="product_list.html">Product List</a></li>
+                </ul>
+              </li>
+              <li><a href="pos.html"><span class="icon">🧾</span><span class="label">POS</span></a></li>
+              <li><a href="customers.html"><span class="icon">👥</span><span class="label">Customer</span></a></li>
+              <li><a href="suppliers.html"><span class="icon">🚚</span><span class="label">Suppliers</span></a></li>
+              <li class="has-submenu">
+                <a href="../reports.php"><span class="icon">📊</span><span class="label">Reports</span></a>
+                <ul class="submenu">
+                  <li><a href="../reports.php#sales-reports">Sales Reports</a></li>
+                  <li><a href="../reports.php#inventory-reports">Inventory Reports</a></li>
+                  <li><a href="../reports.php#financial-reports">Financial Reports</a></li>
+                  <li><a href="../reports.php#supplier-reports">Supplier Reports</a></li>
+                  <li><a href="../reports.php#customer-reports">Customer Reports</a></li>
+                  <li><a href="../reports.php#operational-reports">Operational Reports</a></li>
+                </ul>
+              </li>
+              <li><a href="settings.html" class="active"><span class="icon">⚙️</span><span class="label">Settings</span></a></li>
+            </ul>
+          </nav>
+        </div>
+        <a href="../index.html" class="logout"><span class="icon">⎋</span><span class="label">Logout</span></a>
+      </aside>
+
+      <main class="main-content settings-page">
+        <h1 class="page-title">Settings</h1>
+
+        <section class="card">
+          <header class="card-title">Theme Preferences</header>
+          <div class="row"><label class="label">Dark Mode</label><label class="toggle"><input type="checkbox" checked disabled><span class="slider"></span></label></div>
+          <div class="row"><label class="label">Compact View</label><label class="toggle"><input type="checkbox"><span class="slider"></span></label></div>
+        </section>
+
+        <section class="card">
+          <header class="card-title">Account Settings</header>
+          <form class="settings-form" action="#" method="post" novalidate>
+            <div class="field"><label for="username">Username</label><input id="username" type="text" value="admin" readonly /></div>
+            <div class="field"><label for="current-password">Current Password</label><input id="current-password" type="password" /></div>
+            <div class="field"><label for="new-password">New Password</label><input id="new-password" type="password" /></div>
+            <div class="field"><label for="confirm-password">Confirm New Password</label><input id="confirm-password" type="password" /></div>
+            <div class="actions"><button class="btn save" type="submit">Save Changes</button></div>
+          </form>
+        </section>
+      </main>
+    </div>
+    <script src="../assets/js/global.js"></script>
+  </body>
+</html>
