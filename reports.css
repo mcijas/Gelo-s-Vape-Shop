@@ -1227,7 +1227,7 @@
 .report-card .label { color: #bdbdbd; font-size: 12px; margin-bottom: 6px; }
 .report-card .value { font-size: 20px; font-weight: 700; }
 
-.two-col { display: grid; grid-template-columns: 1fr; gap: 16px; }
+.two-col { display: grid; grid-template-columns: 1fr; gap: 24px; }
 @media (min-width: 1024px){ .two-col { grid-template-columns: 1fr 1fr; } }
 
 .card-table { background: #262626; border: 1px solid #333; border-radius: 12px; overflow: hidden; }
@@ -1236,6 +1236,7 @@
 .card-table thead th { text-align: left; font-weight: 600; color: #ddd; font-size: 14px; padding: 10px 12px; border-bottom: 1px solid #333; }
 .card-table tbody td { padding: 10px 12px; border-bottom: 1px solid #2e2e2e; color: #eaeaea; }
 .card-table tbody tr:hover { background: #2d2d2d; }
+.report-section .card-table { margin-bottom: 24px; }
   
 /* Section toolbar dropdown styles */
 .section-toolbar {

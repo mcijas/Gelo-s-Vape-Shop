@@ -61,11 +61,12 @@
           <button class="qf active" data-range="today">Today</button>
           <button class="qf" data-range="week">This Week</button>
           <button class="qf" data-range="month">This Month</button>
+          <button class="qf" data-range="year">This Year</button>
         </div>
       </section>
 
       <section class="kpis">
-        <div class="kpi-card"><div class="label">Today's Sales</div><div class="value" id="kpiSales">₱0.00</div></div>
+        <div class="kpi-card"><div class="label" id="kpiSalesLabel">Today's Sales</div><div class="value" id="kpiSales">₱0.00</div></div>
         <div class="kpi-card"><div class="label">Transactions</div><div class="value" id="kpiTxns">0</div></div>
         <div class="kpi-card"><div class="label">Top Product</div><div class="value" id="kpiTopProduct">—</div></div>
         <div class="kpi-card"><div class="label">Low Stock Items</div><div class="value" id="kpiLowStock">0</div></div>
@@ -292,6 +293,11 @@
               
               const range = btn.getAttribute('data-range');
               let filteredTxns = [];
+              const labelEl = document.getElementById('kpiSalesLabel');
+              if (labelEl) {
+                const labelMap = { today: "Today's Sales", week: "This Week's Sales", month: "This Month's Sales", year: "This Year's Sales" };
+                labelEl.textContent = labelMap[range] || "Sales";
+              }
               
               if (range === 'today') {
                 filteredTxns = txns.filter(t => sameDay(t.date || t.date_created));
@@ -310,6 +316,13 @@
                 filteredTxns = txns.filter(t => {
                   const txDate = new Date(t.date || t.date_created || '');
                   return txDate >= monthStart && txDate <= now;
+                });
+              } else if (range === 'year') {
+                const now = new Date();
+                const yearStart = new Date(now.getFullYear(), 0, 1);
+                filteredTxns = txns.filter(t => {
+                  const txDate = new Date(t.date || t.date_created || '');
+                  return txDate >= yearStart && txDate <= now;
                 });
               }
               
@@ -381,6 +394,8 @@
           
           // Initial dashboard with today's data
           updateDashboard(todays);
+          const initLabel = document.getElementById('kpiSalesLabel');
+          if (initLabel) initLabel.textContent = "Today's Sales";
         })();
       </script>
     </main>

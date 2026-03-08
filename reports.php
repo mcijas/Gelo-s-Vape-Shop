@@ -96,6 +96,7 @@ try {
               <option value="yesterday">Yesterday</option>
               <option value="this_week">This Week</option>
               <option value="this_month">This Month</option>
+              <option value="this_year">This Year</option>
               <option value="7">Last 7 days</option>
               <option value="30" selected>Last 30 days</option>
             </select>
@@ -175,6 +176,7 @@ try {
                 <option value="lowStock">Low Stock Alerts</option>
                 <option value="inventoryValuation">Inventory Valuation</option>
                 <option value="stockMovement">Stock Movement</option>
+                <option value="priceHistory">Price Change Monitor</option>
               </select>
             </div>
           </div>
@@ -216,6 +218,26 @@ try {
                   <tbody id="stockMovement"><tr><td colspan="5">No data</td></tr></tbody>
                 </table>
               </div>
+            </div>
+          </div>
+          <div class="card-table">
+            <header>Price Change Monitor</header>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Date</th><th>Product</th><th>Old Price</th><th>New Price</th><th>Change</th><th>Last Unit Cost</th><th>Margin</th><th>Changed By</th></tr></thead>
+                <tbody id="priceHistory"><tr><td colspan="5">No data</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card-table">
+            <header>Price Trends</header>
+            <div class="table-scroll" style="padding:12px">
+              <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
+                <label style="color:#a3a3a3;">Product</label>
+                <div id="priceTrendDropdown" class="dropdown-multi" style="position:relative;"></div>
+                <select id="priceTrendSelect" style="display:none;"></select>
+              </div>
+              <canvas id="priceTrendChart" height="160"></canvas>
             </div>
           </div>
         </section>
@@ -451,6 +473,7 @@ try {
               const weekStart = new Date(today);
               weekStart.setDate(weekStart.getDate() - today.getDay());
               const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+              const yearStart = new Date(today.getFullYear(), 0, 1);
             
               const yyyy = (d) => d.getFullYear();
               const mm = (d) => String(d.getMonth() + 1).padStart(2, '0');
@@ -472,6 +495,10 @@ try {
                   break;
                 case 'this_month':
                   from.value = formatDate(monthStart);
+                  to.value = formatDate(today);
+                  break;
+                case 'this_year':
+                  from.value = formatDate(yearStart);
                   to.value = formatDate(today);
                   break;
                 case '7':
@@ -539,7 +566,8 @@ try {
                     'stockLevels': section.querySelector('#stockLevels')?.closest('.card-table'),
                     'lowStock': section.querySelector('#lowStock')?.closest('.card-table'),
                     'inventoryValuation': section.querySelector('#inventoryValuation')?.closest('.card-table'),
-                    'stockMovement': section.querySelector('#stockMovement')?.closest('.card-table')
+                    'stockMovement': section.querySelector('#stockMovement')?.closest('.card-table'),
+                    'priceHistory': section.querySelector('#priceHistory')?.closest('.card-table')
                   };
                   break;
                 case 'financial-reports':
@@ -973,6 +1001,18 @@ try {
               } catch {}
               return [];
             }
+            // NEW: price history fetcher
+            async function getPriceHistory() {
+              try {
+                const q = new URLSearchParams();
+                if (from?.value) q.set('from', from.value);
+                if (to?.value) q.set('to', to.value);
+                const res = await fetch('api/price_history.php?' + q.toString(), { method: 'GET' });
+                const data = await res.json();
+                if (res.ok && data.ok) return data.data || [];
+              } catch {}
+              return [];
+            }
             // Add missing fetchers for Operational Reports
             async function getShifts() {
               try {
@@ -1044,6 +1084,180 @@ try {
               `).join('');
             }
 
+            // NEW: render price change monitor
+            function renderPriceHistory(rows, stockRows) {
+              const body = document.getElementById('priceHistory');
+              if (!body) return;
+              if (!rows || !rows.length) { body.innerHTML = '<tr><td colspan="5">No data</td></tr>'; return; }
+              
+              function latestUnitCostBefore(productId, atISO) {
+                const at = new Date(atISO);
+                let best = null;
+                (stockRows||[]).forEach(m => {
+                  if (m.type !== 'IN') return;
+                  const code = String(m.code || '');
+                  if (code !== String(productId)) return;
+                  const d = new Date(m.date);
+                  if (d <= at) {
+                    if (!best || d > new Date(best.date)) best = m;
+                  }
+                });
+                return best ? (parseFloat(best.unitCost || best.unit_price || 0)) : null;
+              }
+              
+              body.innerHTML = rows.map(r => {
+                const change = (parseFloat(r.new_price) - parseFloat(r.old_price));
+                const pct = (parseFloat(r.old_price) != 0) ? ((change / parseFloat(r.old_price)) * 100).toFixed(2) + '%' : '—';
+                const unitCost = latestUnitCostBefore(r.product_id, r.changed_at);
+                const marginPct = (unitCost != null && parseFloat(r.new_price) > 0)
+                  ? (((parseFloat(r.new_price) - unitCost) / parseFloat(r.new_price)) * 100).toFixed(2) + '%'
+                  : '—';
+                const changedBy = (r.user_id && r.user_id !== null) ? ('#' + r.user_id) : '—';
+                return `
+                  <tr>
+                    <td>${new Date(r.changed_at).toLocaleString()}</td>
+                    <td>${r.product_name || r.product_id}</td>
+                    <td>${fmtPeso(parseFloat(r.old_price))}</td>
+                    <td>${fmtPeso(parseFloat(r.new_price))}</td>
+                    <td>${change >= 0 ? '+' : ''}${pct}</td>
+                    <td>${unitCost != null ? fmtPeso(unitCost) : '—'}</td>
+                    <td>${marginPct}</td>
+                    <td>${(r.changed_by_name || r.changed_by_username) ? (r.changed_by_name || r.changed_by_username) : changedBy}</td>
+                  </tr>
+                `;
+              }).join('');
+            }
+            
+            // Price trend chart (Chart.js)
+            let priceChart;
+            function renderPriceTrendControls(rows) {
+              const dropdown = document.getElementById('priceTrendDropdown');
+              if (!dropdown) return;
+              const products = new Map();
+              (rows||[]).forEach(r => { products.set(String(r.product_id), r.product_name || r.product_id); });
+              
+              dropdown.innerHTML = `
+                <button type="button" class="dropdown-trigger" aria-haspopup="listbox" aria-expanded="false"
+                  style="min-width:220px;height:36px;background:#262626;color:#fff;border:1px solid #404040;border-radius:8px;padding:0 10px;display:flex;align-items:center;justify-content:space-between;">
+                  <span class="dropdown-label">Select products</span>
+                  <span style="opacity:.7">▾</span>
+                </button>
+                <div class="dropdown-menu" role="listbox" hidden
+                  style="position:absolute;top:42px;left:0;background:#1f1f1f;border:1px solid #404040;border-radius:8px;min-width:260px;max-height:220px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,.3);z-index:10;"></div>
+              `;
+              
+              const trigger = dropdown.querySelector('.dropdown-trigger');
+              const menu = dropdown.querySelector('.dropdown-menu');
+              
+              const items = Array.from(products.entries()).map(([id,name]) => ({ id, name, selected: false }));
+              let typed = '';
+              let typedTimer = null;
+              
+              function renderMenu(filter = '') {
+                const f = filter.trim().toLowerCase();
+                const view = items.filter(it => !f || it.name.toLowerCase().includes(f));
+                menu.innerHTML = view.map(it => `
+                  <div class="option" role="option" data-id="${it.id}" aria-selected="${it.selected}"
+                    style="display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;color:#eaeaea;">
+                    <input type="checkbox" ${it.selected ? 'checked' : ''} style="pointer-events:none"/>
+                    <span>${it.name}</span>
+                  </div>
+                `).join('') || `<div style="padding:10px;color:#aaa;">No matches</div>`;
+              }
+              
+              function updateLabel() {
+                const selected = items.filter(i => i.selected).map(i => i.name);
+                trigger.querySelector('.dropdown-label').textContent = selected.length ? selected.join(', ') : 'Select products';
+              }
+              
+              function openMenu() {
+                trigger.setAttribute('aria-expanded', 'true');
+                menu.hidden = false;
+                renderMenu(typed);
+              }
+              function closeMenu() {
+                trigger.setAttribute('aria-expanded', 'false');
+                menu.hidden = true;
+              }
+              
+              trigger.addEventListener('click', () => {
+                if (menu.hidden) openMenu(); else closeMenu();
+              });
+              
+              // Click selection
+              menu.addEventListener('click', (e) => {
+                const opt = e.target.closest('.option');
+                if (!opt) return;
+                const id = opt.getAttribute('data-id');
+                const it = items.find(x => x.id === id);
+                if (!it) return;
+                it.selected = !it.selected;
+                updateLabel();
+                renderMenu(typed);
+                updatePriceTrend(items.filter(i=>i.selected).map(i=>i.id), rows);
+              });
+              
+              // Type-to-filter without input box
+              dropdown.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') { typed = ''; renderMenu(typed); closeMenu(); return; }
+                if (e.key === 'Backspace') { typed = typed.slice(0, -1); renderMenu(typed); return; }
+                if (e.key.length === 1) {
+                  typed += e.key;
+                  renderMenu(typed);
+                  if (typedTimer) clearTimeout(typedTimer);
+                  typedTimer = setTimeout(() => { typed = ''; }, 800);
+                }
+              });
+              
+              // Close on outside click
+              document.addEventListener('click', (e) => {
+                if (!dropdown.contains(e.target)) closeMenu();
+              });
+              
+              // Initial selection: first product if exists
+              if (items.length) {
+                items[0].selected = true;
+                updateLabel();
+                updatePriceTrend([items[0].id], rows);
+              } else {
+                updateLabel();
+              }
+            }
+            function updatePriceTrend(productIds, rows) {
+              const ids = Array.isArray(productIds) ? productIds : [productIds];
+              const byProduct = new Map();
+              (rows||[]).forEach(r => {
+                const id = String(r.product_id);
+                if (!ids.includes(id)) return;
+                if (!byProduct.has(id)) byProduct.set(id, []);
+                byProduct.get(id).push(r);
+              });
+              const allDates = Array.from(new Set([].concat(...Array.from(byProduct.values()).map(list => list.map(r => new Date(r.changed_at).toLocaleDateString()))))).sort((a,b)=> new Date(a) - new Date(b));
+              const ctx = document.getElementById('priceTrendChart');
+              if (!ctx) return;
+              if (priceChart) { priceChart.destroy(); }
+              function colorFor(idx) {
+                const palette = ['#4a90e2','#50e3c2','#f5a623','#e94e77','#7ed321','#bd10e0','#417505','#b8e986','#d0021b','#f8e71c'];
+                return palette[idx % palette.length];
+              }
+              const datasets = Array.from(byProduct.entries()).map(([id, list], idx) => {
+                const name = list[0]?.product_name || id;
+                const pointsByDate = {};
+                list.sort((a,b)=> new Date(a.changed_at) - new Date(b.changed_at)).forEach(r => {
+                  const d = new Date(r.changed_at).toLocaleDateString();
+                  pointsByDate[d] = parseFloat(r.new_price);
+                });
+                const series = allDates.map(d => pointsByDate[d] ?? null);
+                const c = colorFor(idx);
+                return { label: name, data: series, borderColor: c, backgroundColor: c + '33', tension: 0.2 };
+              });
+              // eslint-disable-next-line no-undef
+              priceChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: allDates, datasets },
+                options: { plugins: { legend: { display: true } }, scales: { x: { ticks: { color: '#bbb' } }, y: { ticks: { color: '#bbb' } } } }
+              });
+            }
             // Render Financial Cards: Profit & Loss and Tax Collected, plus Tax Reports table
             function renderFinancialCards(txns, refunds, stockRows) {
               const grossRev = (txns||[]).reduce((s,t)=> s + (parseFloat(t.total)||0), 0);
@@ -1418,6 +1632,12 @@ try {
               await renderShiftReports(filtShifts);
               renderVoids(filtVoids);
               renderStaffHours(filtHours);
+              
+              // Inventory: Price changes
+              const priceRows = await getPriceHistory();
+              const filtPh = (priceRows||[]).filter(r => inRange(r.changed_at, from?.value, to?.value));
+              renderPriceHistory(filtPh, rows);
+              renderPriceTrendControls(filtPh);
             }
             // NEW: per-shift aggregation of sales, refunds, and purchases
             async function renderShiftReports(shifts) {
@@ -1690,6 +1910,7 @@ try {
         </script>
       </main>
     </div>
+    <script src="chart.umd.min.js"></script>
     <script src="assets/js/global.js"></script>
   </body>
 </html>

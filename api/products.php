@@ -1,6 +1,7 @@
 <?php
 // api/products.php
 header('Content-Type: application/json');
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 require __DIR__ . '/db.php';
 
 // Ensure products table exists
@@ -25,6 +26,21 @@ try {
   echo json_encode(['ok' => false, 'error' => $e->getMessage()]);
   exit;
 }
+
+// NEW: Track product price changes
+try {
+  $pdo->exec("CREATE TABLE IF NOT EXISTS product_price_history (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT NOT NULL,
+    old_price DECIMAL(10,2) NOT NULL,
+    new_price DECIMAL(10,2) NOT NULL,
+    changed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    reason VARCHAR(64) DEFAULT 'manual',
+    user_id INT DEFAULT NULL,
+    INDEX (product_id),
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+  )");
+} catch (Throwable $__ ) {}
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -294,10 +310,34 @@ if ($method === 'PATCH') {
       exit;
     }
     
+    // Capture old price for history if price is being changed
+    $oldPrice = null;
+    $newPrice = null;
+    if (isset($_POST['price'])) {
+      try {
+        $cur = $pdo->prepare('SELECT price FROM products WHERE id = ?');
+        $cur->execute([$id]);
+        $row = $cur->fetch(PDO::FETCH_ASSOC);
+        if ($row && isset($row['price'])) {
+          $oldPrice = (float)$row['price'];
+          $newPrice = (float)$_POST['price'];
+        }
+      } catch (Throwable $__ ) {}
+    }
+    
     $params[] = $id; // Add ID for WHERE clause
     $sql = 'UPDATE products SET ' . implode(', ', $updates) . ' WHERE id = ?';
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
+    
+    // Write to price history if changed
+    if ($oldPrice !== null && $newPrice !== null && number_format($oldPrice, 2) !== number_format($newPrice, 2)) {
+      try {
+        $userId = isset($_SESSION['user']['id']) ? (int)$_SESSION['user']['id'] : null;
+        $ins = $pdo->prepare('INSERT INTO product_price_history (product_id, old_price, new_price, changed_at, reason, user_id) VALUES (?, ?, ?, NOW(), ?, ?)');
+        $ins->execute([$id, $oldPrice, $newPrice, 'manual', $userId]);
+      } catch (Throwable $__ ) {}
+    }
     
     echo json_encode(['ok' => true, 'message' => 'Product updated successfully']);
   } catch (Throwable $e) {
